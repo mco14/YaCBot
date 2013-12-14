@@ -9,50 +9,34 @@ import java.util.regex.Pattern;
 
 import javax.security.auth.login.LoginException;
 
-class Category {
-	private String name;
-	private String sortkey;
-
-	public Category(String name, String sortkey) {
-		this.name = WikiPage.firstCharToUpperCase(name);
-		this.sortkey = sortkey;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public String getSortkey() {
-		return sortkey;
-	}
-
-	public void setSortkey(String sortkey) {
-		this.sortkey = sortkey;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-}
-
 public class WikiPage {
 	private boolean isFile;
 	private String name;
 	private Category[] parents;
-	private String[] grandparents;
-	private Category[] cleanparents;
 	private String text;
 	private Wiki wiki;
 	private boolean isCleanedup;
-	// stays empty if only minor cleanups were made
-	private String editSummary = "";
+	// editSummary stays empty if only minor cleanups were made
+	private String editSummary;
 
+	/**
+	 * Creates a new object of the class WikiPage. It is possible to clean up
+	 * the wikitext of the page
+	 * 
+	 * @param wiki
+	 *            The wiki where the WikiPage is located
+	 * @param name
+	 *            The name of the category
+	 * @param isFile
+	 *            If the page is a file or not
+	 */
 	public WikiPage(Wiki wiki, String name, boolean isFile) throws IOException {
 		this.isFile = isFile;
 		this.wiki = wiki;
 		this.name = name;
 		this.text = wiki.getPageText(name);
 		this.isCleanedup = false;
+		this.editSummary = "";
 	}
 
 	public String getEditSummary() {
@@ -222,10 +206,11 @@ public class WikiPage {
 			// .replaceAll(caseInsensitive+"\\{\\{en *(?:\\| *1=)? *\\}\\} *(\\||\\}\\}|\\r|\\n)","$1")
 			;
 			this.text = cleanText;
-			// only minor cleanup per [1] and [2]
-			// [1] https://commons.wikimedia.org/wiki/Commons:Regex#Junk_cleanup
-			// [2] https://commons.wikimedia.org/wiki/Commons:Regex#Formatting
+			// only minor cleanup per
+			// https://commons.wikimedia.org/wiki/Commons:Regex#Junk_cleanup
 		}
+		// only minor cleanup per
+		// https://commons.wikimedia.org/wiki/Commons:Regex#Formatting
 		this.text = text.replaceAll("\\n{3,}", "\n\n");
 		cleanText = text
 				.replaceAll(
@@ -265,7 +250,7 @@ public class WikiPage {
 				+ "(\\[\\[category:)([^]]+\\]\\])(.*?)\\1\\2\\n?", "$1$2$3");
 		if (!(text.equals(cleanText))) {
 			this.editSummary = editSummary
-					+ "[[Com:Regex#Categories|Category cleanup]]. ";
+					+ "[[Com:Regex#Categories|Category-cleanup]]. ";
 			this.text = cleanText;
 		}
 		cleanText = text
@@ -281,158 +266,246 @@ public class WikiPage {
 		}
 	}
 
+	/**
+	 * Make the first char of the string upper-case
+	 * 
+	 * @param string
+	 *            The string to be tackled
+	 * @return The string with the first char upper-cased
+	 */
 	public static String firstCharToUpperCase(String string) {
-		if (string.equals("") || string == null)
+		if (string == null || string.equals(""))
 			return string;
 		return Character.toUpperCase(string.charAt(0))
 				+ (string.length() > 1 ? string.substring(1) : "");
 	}
 
-	private String multipleReplaceAll(String string, String regex,
+	/**
+	 * Replace all matches of the regex in the string until no change to the
+	 * string can be made anymore
+	 * 
+	 * @param string
+	 *            The string to be considered
+	 * @param regex
+	 *            The regex pattern
+	 * @param replacement
+	 *            All matches of the regex are replaced by this
+	 * @return The string with all matches replaced
+	 */
+	private static String multipleReplaceAll(String string, String regex,
 			String replacement) {
 		String string2;
 		int maximumReplacements = 1000;
 		while (true) {
 			string2 = string.replaceAll(regex, replacement);
-			if (maximumReplacements == 1) {
-				System.out.println("Too many replacements for regex='" + regex
-						+ "' and replacement='" + replacement
-						+ "'. Text was ~'" + string + "'");
-				System.exit(-1);
+			{// TODO Remove this after debug!
+				if (maximumReplacements == 1) {
+					System.out.println("Too many replacements for regex=\n'"
+							+ regex + "'\nand replacement=\n'" + replacement
+							+ "'\nCurrent text was \n'" + string + "'.");
+					System.exit(-1);
+				}
 			}
-			if (string2.equals(string) || maximumReplacements-- == 0)
+			if (string2.equals(string) || maximumReplacements-- == 1)
 				return string2;
 			else
 				string = string2;
 		}
 	}
 
+	/**
+	 * Clean up the [[com:OVERCAT]]-problem for the file
+	 * 
+	 * @param depth
+	 *            The depth which the category tree should be examined. WARNING:
+	 *            Set to "1" if you are unsure about possible loops in the tree
+	 *            which will most likely cause unexpected behavior
+	 * @throws IOException
+	 */
 	public void cleanupOvercat(int depth) throws IOException {
+		if (!isCleanedup)
+			this.cleanupWikitext();
 		Category[] parentCategories = this.getParentCats();
-		String[] grandparentStrings = this.getAllGrandparentCats(depth);
-
-		Object[] stuff = calculate(parentCategories, grandparentStrings);
-
-		Category[] cleanParentCategories = (Category[]) stuff[0];
-		this.parents = cleanParentCategories;
-		String[] removedCategories = (String[]) stuff[1];
-		String removedCategoriesWikitext = (String) stuff[2];
-		String categoryWikitext = (String) stuff[3];
-		if (cleanParentCategories.length < parentCategories.length) {
+		Object[] cleanedCatsAndText = returnCleanedCatsAndText(
+				parentCategories, this.returnAllGrandparentCats(depth));
+		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
+		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
+		String categoryWikitext = (String) cleanedCatsAndText[2];
+		int numberOfCleanedCategories = parentCategories.length
+				- cleanParentCategories.length;
+		if (numberOfCleanedCategories > 0) {
+			// only if categories could be cleaned up: Set new parent-categories
+			// and text as well as the editSummary
+			this.parents = cleanParentCategories;
 			this.setText(removeCatsFromText(parentCategories, this.getText())
 					+ categoryWikitext);
 			this.editSummary = "Removed "
-					+ (parentCategories.length - cleanParentCategories.length)
+					+ numberOfCleanedCategories
 					+ " categories which are parent of already present categories (Per [[COM:OVERCAT]]): "
 					+ removedCategoriesWikitext + ". " + this.getEditSummary();
 		}
 	}
 
-	private Object[] calculate(Category[] parentCategories,
-			String[] grandparentStrings) {
-		// create: # cleanParentcats with sortkey # removed cats witthout
-		// sortkey and # editlinepart
-		String revoked = "e7db5f37c0a2bc9b525d8ab86ea9ed12";
+	/**
+	 * Calculate an array of "clean" parent-categories with their sortkeys and
+	 * two wiki-code-texts: The removed categories (used for the editSummary)
+	 * and the wiki-code representation of the "clean" parent-categories
+	 * 
+	 * @param parentCategories
+	 *            The (not yet clean) parent-categories
+	 * @param grandparentStrings
+	 *            The previously determined categories which are supposed to be
+	 *            the grandparent categories
+	 * @return The three items bundled into a JAVA-Object array
+	 */
+	private static Object[] returnCleanedCatsAndText(
+			Category[] parentCategories, String[] grandparentStrings) {
 		Category[] cleanCategories = parentCategories.clone();
-		String[] removedCategories = new String[parentCategories.length];
-		String categoryWikitext = "\n";
-		int revokedCounter = 0;
-
+		String categoryWikitext = "";
 		String removedCatsWikitext = "";
+
+		int revokedCounter = 0;
+		String revokedFlag = "e7db5f37c0a2bc9b525d8ab86ea9ed12";
+		// calculate the number of redundant categories
+		// TODO: reduce to one for loop...
 		for (int i = 0; i < parentCategories.length; i++) {
 			for (int r = 0; r < grandparentStrings.length; r++) {
 				if ((parentCategories[i].getName()
 						.equals(grandparentStrings[r]))) {
 					removedCatsWikitext = removedCatsWikitext + "[[Category:"
 							+ parentCategories[i].getName() + "]] ";
-					removedCategories[revokedCounter++] = parentCategories[i]
-							.getName();
-					cleanCategories[i].setName(revoked);
+					revokedCounter++;
+					cleanCategories[i].setName(revokedFlag);
 					break;
 				}
 			}
 		}
+		// create a new array for the clean categories taking into account the
+		// number of redundant categories
 		Category[] cleanCategoriesReturn = new Category[cleanCategories.length
 				- revokedCounter];
-		int c = 0;
-		String[] removedCategoriesReturn = new String[revokedCounter];
-		int r = 0;
+		int temp = 0;
 		for (int i = 0; i < parentCategories.length; i++) {
-			if (cleanCategories[i].getName().equals(revoked))
-				removedCategoriesReturn[r++] = removedCategories[i];
-			else {
-				cleanCategoriesReturn[c++] = cleanCategories[i];
+			if (!cleanCategories[i].getName().equals(revokedFlag)) {
+				cleanCategoriesReturn[temp++] = cleanCategories[i];
 				categoryWikitext = categoryWikitext
-						+ "[[Category:"
+						+ "\n[[Category:"
 						+ cleanCategories[i].getName()
-						+ ((cleanCategories[i].getSortkey() != null) ? "|"
-								+ cleanCategories[i].getSortkey() + "]]" : "]]");
+						+ ((cleanCategories[i].getSortkey() == null) ? "]]"
+								: "|" + cleanCategories[i].getSortkey() + "]]");
 			}
 		}
-		Object[] returnObjects = new Object[4];
-		returnObjects[0] = cleanCategoriesReturn;
-		returnObjects[1] = removedCategoriesReturn;
-		returnObjects[2] = removedCatsWikitext;
-		returnObjects[3] = categoryWikitext;
-		return returnObjects;
+		return new Object[] { cleanCategoriesReturn, removedCatsWikitext,
+				categoryWikitext };
 	}
 
-	private static String removeCatsFromText(Category[] parentCategories,
-			String pageText) {
-		Category[] catsI = parentCategories.clone();
-		for (int z = 0; z < catsI.length; z++) {
-			String name = parentCategories[z].getName();
-			String regexcaseinsensitive = "";
+	/**
+	 * Removes the given categories from the given text while ignoring the
+	 * content of comments (between "<!--" and "-->")
+	 * 
+	 * @param categories
+	 *            The categories to be removed from the text
+	 * @param text
+	 *            The text to be altered
+	 * @return The altered text
+	 */
+	private static String removeCatsFromText(Category[] categories, String text) {
+		for (int z = 0; z < categories.length; z++) {
+			String name = categories[z].getName();
+			String regexCaseInsensitive;
 			if (name.length() >= 1)
-				regexcaseinsensitive = "[" + name.substring(0, 1).toLowerCase()
+				regexCaseInsensitive = "[" + name.substring(0, 1).toLowerCase()
 						+ name.substring(0, 1).toUpperCase() + "]";
+			else
+				regexCaseInsensitive = "";
 			if (name.length() >= 2)
 				name = name.substring(1);
 			else
 				name = "";
-			pageText = replaceAllIgnoreComments(pageText,"\\[\\[[Cc]ategory:"
-					+ regexcaseinsensitive + name, "");
+			text = replaceAllIgnoreComments(text, "\\[\\[[Cc]ategory:"
+					+ regexCaseInsensitive + name, "");
 		}
-		return pageText;
+		return text;
 	}
 
-	private static String replaceAllIgnoreComments(String pageText,
-			String target, String replacement) {
+	/**
+	 * Replace all matches of the regex with the replacement string in the text
+	 * string
+	 * 
+	 * @param text
+	 *            The text to be altered
+	 * @param regex
+	 *            The regex pattern
+	 * @param replacement
+	 *            All matches get substituted by this
+	 * @return
+	 */
+	private static String replaceAllIgnoreComments(String text, String regex,
+			String replacement) {
 		String commentPre = "<!--";
 		String commentSuf = "-->";
-		String split[] = pageText.split(commentPre, 2);
+		String split[] = text.split(commentPre, 2);
 		// tackle stuff in front of comment -> Just replace
-		pageText = split[0].replaceAll(target, replacement);
-		if (split.length == 2) { // if comment actually found
+		text = split[0].replaceAll(regex, replacement);
+		if (split.length == 2) {
+			// if comment actually found
 			// search for the end of the comment
 			String split2[] = split[1].split(commentSuf, 2);
-			if (split2.length == 2) { // if end of comment actually found
+			if (split2.length == 2) {
+				// if end of comment actually found
 				// keep comment and only replace stuff after the end of the
 				// comment recursively
-				pageText = pageText + commentPre + split2[0] + commentSuf
-						+ replaceAllIgnoreComments(split2[1], target, replacement);
+				text = text
+						+ commentPre
+						+ split2[0]
+						+ commentSuf
+						+ replaceAllIgnoreComments(split2[1], regex,
+								replacement);
 			} else {
 				// no comment found -> Just replace
-				pageText = pageText + commentPre
-						+ split[1].replaceAll(target, replacement);
+				text = text + commentPre
+						+ split[1].replaceAll(regex, replacement);
 			}
 		}
-		return pageText;
+		return text;
 	}
 
-	private String[] getAllGrandparentCats(int depth) throws IOException {
-
-		String[] parentStrings = new String[this.getParentCats().length];
+	/**
+	 * Return all grandparent categories for the given depth
+	 * 
+	 * @param depth
+	 *            The number of steps to be taken in the direction of the
+	 *            category-tree root
+	 * @return A string array containing all grandparentcats without duplicate
+	 *         entries
+	 * @throws IOException
+	 */
+	private String[] returnAllGrandparentCats(int depth) throws IOException {
+		String[] parentCategories = new String[this.getParentCats().length];
+		// Convert Category[] into String[] (wiping all sortkeys)
 		for (int i = 0; i < this.getParentCats().length; i++) {
-			parentStrings[i] = this.getParentCats()[i].getName();
+			parentCategories[i] = this.getParentCats()[i].getName();
 		}
-		Set<String> listSet = all_grand_parentCats(wiki, parentStrings, depth);
-
-		this.grandparents = listSet.toArray(new String[listSet.size()]);
-		return grandparents;
+		Set<String> listSet = all_grand_parentCats(wiki, parentCategories,
+				depth);
+		return listSet.toArray(new String[listSet.size()]);
 	}
 
-	public static Set<String> all_grand_parentCats(Wiki wiki,
+	/**
+	 * A static method which calls itself in a recursive manner to create a
+	 * string-set of all grandparent categories
+	 * 
+	 * @param wiki
+	 *            The wiki to connect to
+	 * @param categories
+	 *            The categories whose pageText gets evaluated by the method
+	 * @param depth
+	 *            The depth to be examined (depth == 1 means no recursion at
+	 *            all)
+	 * @return The string-set which was recursively generated
+	 * @throws IOException
+	 */
+	private static Set<String> all_grand_parentCats(Wiki wiki,
 			String[] categories, int depth) throws IOException {
 		if (depth <= 0) {
 			Set<String> emptySet = new LinkedHashSet<String>();
@@ -451,6 +524,11 @@ public class WikiPage {
 		return subSet;
 	}
 
+	/**
+	 * Return the parent categories of the WikiPage
+	 * 
+	 * @return The Category array
+	 */
 	private Category[] getParentCats() {
 		if (isCleanedup == false)
 			this.cleanupWikitext();
@@ -467,16 +545,27 @@ public class WikiPage {
 		return parents;
 	}
 
+	/**
+	 * Returns the parent categories which can be inferred from the given text
+	 * 
+	 * @param wiki
+	 *            The wiki to connect to
+	 * @param text
+	 *            The text to be evaluated (Commented content gets ignored)
+	 * @param sortkey
+	 *            If the sortkey should be included into the string array
+	 * @return A string array containing all categories and (if desired) the
+	 *         sortkey separated by "|"
+	 */
 	public static String[] parentCats(Wiki wiki, String text, boolean sortkey) {
 		Matcher m = Pattern.compile("\\[\\[[cC]ategory:[^}#\\]\\[{><]*\\]\\]")
 				.matcher(wipeComments(text));
-		// percent seems to be allowed in some cases
-		// thus: it should match:
-		// [%!\"$&'()*,\\-.\\/0-9:;=?@A-Z\\\\^_`a-z~\\x80-\\xFF+]
-		// is this valid regex to match the cats?
-		// @deprecatedFollowing
-		// replaced "<!--(([^-])|(-[^-])|(--[^>]))*-->"
-		// by "<!--([^-]?(-[^-])?(--[^>])?)*-->" (used in pageText.replace)
+		{// TODO Remove this after debug!
+			// The above match (if any) should also match the following regex to
+			// be valid
+			// [%!\"$&'()*,\\-.\\/0-9:;=?@A-Z\\\\^_`a-z~\\x80-\\xFF+]
+		}
+		// TODO Merge both while loops if possible
 		int hits = 0;
 		while (m.find()) {
 			System.out.println("Category " + ++hits + " found: " + m.group());
@@ -491,7 +580,7 @@ public class WikiPage {
 						.substring(2, m.group().length() - 2).split(":", 2)[1]
 						.split("\\|", 2)[0]);
 			} else {
-				// The name and the sortkey
+				// The name and the sortkey (if existent)
 				parents[hits++] = WikiPage.firstCharToUpperCase(m.group()
 						.substring(2, m.group().length() - 2).split(":", 2)[1]);
 			}
@@ -499,6 +588,13 @@ public class WikiPage {
 		return parents;
 	}
 
+	/**
+	 * Return the text with all comments removed
+	 * 
+	 * @param text
+	 *            The text to be altered
+	 * @return The altered text which lacks all comments
+	 */
 	public static String wipeComments(String text) {
 		String commentPre = "<!--";
 		String commentSuf = "-->";
@@ -518,6 +614,15 @@ public class WikiPage {
 		return text;
 	}
 
+	/**
+	 * Write the text of the WikiPage to the wiki if any relevant changes were
+	 * made
+	 * 
+	 * @param bot
+	 *            Toggle whether to edit with the bot flag or not
+	 * @throws LoginException
+	 * @throws IOException
+	 */
 	public void writeText(boolean bot) throws LoginException, IOException {
 		if (this.getEditSummary().length() == 0)
 			return;
@@ -525,5 +630,39 @@ public class WikiPage {
 		wiki.edit(this.getName(), this.getText(),
 				"Bot: " + this.getEditSummary());
 		this.editSummary = "";
+	}
+}
+
+class Category {
+	private String name;
+	private String sortkey;
+
+	/**
+	 * Internal representation of a category
+	 * 
+	 * @param name
+	 *            The name of the category
+	 * @param sortkey
+	 *            Either a String holding the sortkey or null
+	 */
+	Category(String name, String sortkey) {
+		this.name = WikiPage.firstCharToUpperCase(name);
+		this.sortkey = sortkey;
+	}
+
+	String getName() {
+		return name;
+	}
+
+	String getSortkey() {
+		return sortkey;
+	}
+
+	void setSortkey(String sortkey) {
+		this.sortkey = sortkey;
+	}
+
+	void setName(String name) {
+		this.name = name;
 	}
 }
