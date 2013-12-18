@@ -1,5 +1,5 @@
 /**
- *  @(#)Wiki.java 0.27 15/10/2012
+ *  @(#)Wiki.java 0.27.01 15/10/2012
  *  Copyright (C) 2007 - 2013 MER-C and contributors
  *
  *  This program is free software; you can redistribute it and/or
@@ -25,6 +25,7 @@ import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 import java.util.zip.GZIPInputStream;
+
 import javax.security.auth.login.*;
 
 /**
@@ -1951,6 +1952,26 @@ public class Wiki implements Serializable
         return categories.toArray(new String[temp]);
     }
 
+	public String[] getCategories(String title, boolean sortkey, boolean ignoreHidden) throws IOException
+	{//TODO ignoreHIdden
+		if (sortkey == false)
+			return getCategories(title);
+        String url = query + "prop=categories&cllimit=max&clprop=sortkey%7Chidden&titles=" + URLEncoder.encode(title, "UTF-8");
+        String line = fetch(url, "getCategories");
+
+        // xml form: <cl ns="14" title="Category:1879 births" sortkey="(long string)" sortkeyprefix="" />
+        // or        <cl ns="14" title="Category:Images for cleanup" sortkey="(long string)" sortkeyprefix="Borders" hidden="" />
+        ArrayList<String> categories = new ArrayList<String>(750);
+        for (int a = line.indexOf("<cl "); a > 0; a = line.indexOf("<cl ", ++a))
+        {
+        	String sortkeyString = decode(parseAttribute(line, "sortkeyprefix", a));
+            categories.add(decode(parseAttribute(line, "title", a)) + ( (sortkeyString.length()==0)? ("") : "|" + sortkeyString));
+        }
+        int temp = categories.size();
+        log(Level.INFO, "Successfully retrieved categories of " + title + " (" + temp + " categories)", "getCategories");
+        return categories.toArray(new String[temp]);
+	}
+
     /**
      *  Gets the list of templates used on a particular page that are in a
      *  particular namespace(s). Capped at <tt>max</tt> number of templates,
@@ -2143,6 +2164,25 @@ public class Wiki implements Serializable
     }
 
     /**
+     * Gets the last editor of a page
+     * @param title a page
+     * @return the last editor of that page or an empty string
+     * @throws IOException if a network error occurs
+     * @since 0.27.01
+     */
+	public String getLastEditor(String title) throws IOException
+	{
+		StringBuilder url = new StringBuilder(query);
+		url.append("prop=revisions&rvlimit=1&titles=");
+		url.append(URLEncoder.encode(normalize(title), "UTF-8"));
+        url.append("&rvprop=user");
+		String result = fetch(url.toString(), "getPageHistory");
+		log(Level.INFO, "Successfully retrieved last editor of " + title,
+				"getPageHistory");
+		return decode(parseAttribute(result, "user", 0));
+	}
+
+    /**
      *  Gets the revision history of a page between two dates.
      *  @param title a page
      *  @param start the date to start enumeration (the latest of the two dates)
@@ -2155,9 +2195,9 @@ public class Wiki implements Serializable
     {
         // set up the url
         StringBuilder url = new StringBuilder(query);
-        url.append("prop=revisions&rvlimit=max&titles=");
+		url.append("prop=revisions&rvlimit=max&titles=");
         url.append(URLEncoder.encode(normalize(title), "UTF-8"));
-        url.append("&rvprop=timestamp%7Cuser%7Cids%7Cflags%7Csize%7Ccomment");
+		url.append("&rvprop=timestamp%7Cuser%7Cids%7Cflags%7Csize%7Ccomment");
         if (end != null)
         {
             url.append("&rvend=");

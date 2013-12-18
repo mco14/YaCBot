@@ -1,19 +1,16 @@
 package overbot;
 
 import java.io.IOException;
-import java.util.GregorianCalendar;
-import javax.security.auth.login.FailedLoginException;
 import javax.security.auth.login.LoginException;
 
 import shared.Wiki;
-import shared.Wiki.Revision;
 import shared.WikiPage;
 
 public class OverBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.14");
+		System.out.println("v13.12.15");
 
 		String[] expectedArgs = { "username", "category" };
 		String[] expectedArgsDescription = {
@@ -33,7 +30,9 @@ public class OverBot {
 		}
 		Wiki commons = new Wiki("commons.wikimedia.org");
 		try {
-			login(commons, args[0]);
+			System.out.println("Please type in the password for " + args[0]
+					+ ".");
+			commons.login(args[0], System.console().readPassword());
 			// Minimum time between edits in ms
 			commons.setThrottle(0 * 1000);
 			// Pause bot if lag is greater than ... in s
@@ -42,22 +41,6 @@ public class OverBot {
 		} catch (LoginException | IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * Asks the user to type in his password in the console
-	 * 
-	 * @param wiki
-	 *            The wiki to log into
-	 * @param user
-	 *            The user to log on
-	 * @throws IOException
-	 * @throws FailedLoginException
-	 */
-	private static void login(Wiki wiki, String user)
-			throws FailedLoginException, IOException {
-		System.out.println("Please type in the password for " + user + ".");
-		wiki.login(user, System.console().readPassword());
 	}
 
 	/**
@@ -76,18 +59,8 @@ public class OverBot {
 		String[] categoryMembers = wiki.getCategoryMembers(category);
 
 		for (int i = 0; i < categoryMembers.length; i++) {
-			{ // Ignore member if previously edited
-				Revision[] historyRev = wiki.getPageHistory(categoryMembers[i],
-						new GregorianCalendar(2013, 11, 1),
-						new GregorianCalendar());
-				if (historyRev.length >= 1) {
-					String lastEditor = historyRev[historyRev.length - 1]
-							.getUser();
-					if (lastEditor != null && lastEditor == user) {
-						continue;
-					}
-				}
-			}
+			if (wiki.getLastEditor(categoryMembers[i]).equals(user))
+				continue;
 			if (categoryMembers[i].startsWith("Category:")) {
 				// may cause infinite loop -> ignore for now
 				System.out.println("Found a subcategory " + categoryMembers[i]
@@ -96,14 +69,14 @@ public class OverBot {
 				// then recursively cleanup(wiki, categoryMembers[i]);
 			}
 			if (categoryMembers[i].startsWith("File:")) {
-				WikiPage target = new WikiPage(wiki, categoryMembers[i], true);
+				WikiPage target = new WikiPage(wiki, categoryMembers[i]);
 				target.cleanupOvercat(1);
 				// bot==false for now
 				target.writeText(false);
 			}
-			System.out
-					.println("Gone through all subcategories and files of [[:Category:"
-							+ category + "]]. Exiting.");
 		}
+		System.out
+				.println("Gone through all subcategories and files of [[:Category:"
+						+ category + "]]. Exiting.");
 	}
 }
