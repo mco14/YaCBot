@@ -483,12 +483,6 @@ public class WikiPage {
 			throws IOException {
 		// Do not use the categories found in the page text
 		// Instead use the categories returned by the API
-
-		// String[] parentCategories = new String[this.getParentCats().length];
-		// Convert Category[] into String[] (wiping all sortkeys)
-		// for (int i = 0; i < this.getParentCats().length; i++) {
-		// parentCategories[i] = this.getParentCats()[i].getName();
-		// }
 		String[] parentCategories = parentCats(wiki, name, false, ignoreHidden);
 		Set<String> listSet = all_grand_parentCats(wiki, parentCategories,
 				depth, ignoreHidden);

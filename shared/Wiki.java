@@ -1939,32 +1939,42 @@ public class Wiki implements Serializable
      */
     public String[] getCategories(String title) throws IOException
     {
-        String url = query + "prop=categories&cllimit=max&titles=" + URLEncoder.encode(title, "UTF-8");
-        String line = fetch(url, "getCategories");
-
-        // xml form: <cl ns="14" title="Category:1879 births" />
-        ArrayList<String> categories = new ArrayList<String>(750);
-        for (int a = line.indexOf("<cl "); a > 0; a = line.indexOf("<cl ", ++a))
-            categories.add(decode(parseAttribute(line, "title", a)));
-        
-        int temp = categories.size();
-        log(Level.INFO, "Successfully retrieved categories of " + title + " (" + temp + " categories)", "getCategories");
-        return categories.toArray(new String[temp]);
+    	return getCategories(title, false, false);
     }
 
+    /**
+     * Gets the list of categories a particular page is in. Ignores hidden
+     * categories if ignoreHidden is true. Also includes the sortkey of a
+     * category if sortkey is true. The sortkey would then be prepended to
+     * the element of the returned string array (separated by "|").
+     * Capped at <tt>max</tt> number of categories, there's no reason why
+     * there should be more than that.
+     * 
+     * @param title a page
+     * @param sortkey return a sortkey as well
+     * @param ignoreHidden skip hidden categories
+     * @return the list of categories that the page is in
+     * @throws IOException if a network error occurs
+     * @since 0.27.1
+     */
+    
 	public String[] getCategories(String title, boolean sortkey, boolean ignoreHidden) throws IOException
-	{//TODO ignoreHIdden
-		if (sortkey == false)
-			return getCategories(title);
+	{
         String url = query + "prop=categories&cllimit=max&clprop=sortkey%7Chidden&titles=" + URLEncoder.encode(title, "UTF-8");
         String line = fetch(url, "getCategories");
 
-        // xml form: <cl ns="14" title="Category:1879 births" sortkey="(long string)" sortkeyprefix="" />
-        // or        <cl ns="14" title="Category:Images for cleanup" sortkey="(long string)" sortkeyprefix="Borders" hidden="" />
+        // xml form: <cl ns="14" title="Category:1879 births" sortkey=(long string) sortkeyprefix="" />
+        // or      : <cl ns="14" title="Category:Images for cleanup" sortkey=(long string) sortkeyprefix="Borders" hidden="" />
         ArrayList<String> categories = new ArrayList<String>(750);
-        for (int a = line.indexOf("<cl "); a > 0; a = line.indexOf("<cl ", ++a))
+        int a, b; // beginIndex and endIndex
+        for ( a = line.indexOf("<cl "); a > 0; a = b )
         {
-        	String sortkeyString = decode(parseAttribute(line, "sortkeyprefix", a));
+        	b = line.indexOf("<cl ", a+1);
+        	if(ignoreHidden && line.substring(a, (b>0)? b : line.length()).contains("hidden"))
+        		continue;
+        	String sortkeyString = "";
+        	if(sortkey)
+        		sortkeyString = decode(parseAttribute(line, "sortkeyprefix", a));
             categories.add(decode(parseAttribute(line, "title", a)) + ( (sortkeyString.length()==0)? ("") : "|" + sortkeyString));
         }
         int temp = categories.size();
