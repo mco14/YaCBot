@@ -387,18 +387,16 @@ public class WikiPage {
 			Category[] cleanCategoriesReturn = new Category[cleanCategories.length
 					- revokedCounter];
 			int temp = 0;
-			for (int i = 0; i < cleanCategories.length; i++) {
-				if (!cleanCategories[i].getName().equals(revokedFlag)) {
-					cleanCategoriesReturn[temp++] = cleanCategories[i];
+			for (Category i : cleanCategories) {
+				if (!i.getName().equals(revokedFlag)) {
+					cleanCategoriesReturn[temp++] = i;
 					categoryWikitext = categoryWikitext
 							+ "\n[[Category:"
-							+ cleanCategories[i].getName()
-							+ ((cleanCategories[i].getSortkey() == null) ? "]]"
-									: "|" + cleanCategories[i].getSortkey()
-											+ "]]");
+							+ i.getName()
+							+ ((i.getSortkey() == null) ? "]]" : "|"
+									+ i.getSortkey() + "]]");
 				}
 			}
-
 			removedCatsWikitext = removedCatsWikitext.substring(0,
 					removedCatsWikitext.length() - 1);
 			cleanCategories = cleanCategoriesReturn;
@@ -418,10 +416,9 @@ public class WikiPage {
 	 * @return The altered text
 	 */
 	private static String removeCatsFromText(Category[] categories, String text) {
-		for (int z = 0; z < categories.length; z++) {
+		for (Category z : categories) {
 			text = replaceAllIgnoreComments(text, "(?iu)" + "\\[\\[Category:"
-					+ categories[z].getName() + "(\\|[^}#\\]\\[{><]*)?"
-					+ "\\]\\]", "");
+					+ z.getName() + "(\\|[^}#\\]\\[{><]*)?" + "\\]\\]", "");
 		}
 		return text;
 	}
@@ -513,14 +510,12 @@ public class WikiPage {
 			return emptySet;
 		}
 		Set<String> subSet = new LinkedHashSet<String>();
-		for (int i = 0; i < categories.length; i++) {
-			String[] parentStringsI = WikiPage.parentCats(wiki, "Category:"
-					+ categories[i], false, ignoreHidden);
-			for (int a = 0; a < parentStringsI.length; a++) {
-				subSet.addAll(all_grand_parentCats(wiki, parentStringsI,
-						depth - 1, ignoreHidden));
-			}
-			subSet.addAll(Arrays.asList(parentStringsI));
+		for (String cat : categories) {
+			String[] tempGrandparent = WikiPage.parentCats(wiki, "Category:"
+					+ cat, false, ignoreHidden);
+			subSet.addAll(all_grand_parentCats(wiki, tempGrandparent,
+					depth - 1, ignoreHidden));
+			subSet.addAll(Arrays.asList(tempGrandparent));
 		}
 		return subSet;
 	}
@@ -536,22 +531,17 @@ public class WikiPage {
 			this.cleanupWikitext();
 		if (parents == null) {
 			String[] parentCats = parentCatsFromPagetext(wiki, text, true);
-			Category[] parentCategories = new Category[parentCats.length];
-			for (int i = 0; i < parentCats.length; i++) {
-				String splitString[] = parentCats[i].split("\\|", 2);
-				parentCategories[i] = new Category(splitString[0],
-						(splitString.length == 2) ? splitString[1] : null);
-			}
 			// wipe dupes
 			Set<String> names = new HashSet<String>();
 			List<Category> catList = new ArrayList<Category>();
-			for (Category cat : parentCategories)
-				if (names.add(cat.getName()))
-					catList.add(cat);
-			Category[] unqiueCategories = catList.toArray(new Category[catList
-					.size()]);
-
-			this.parents = unqiueCategories;
+			for (String name : parentCats) {
+				if (names.add(name)) {
+					String splitString[] = name.split("\\|", 2);
+					catList.add(new Category(splitString[0],
+							(splitString.length == 2) ? splitString[1] : null));
+				}
+			}
+			this.parents = catList.toArray(new Category[catList.size()]);
 		}
 		return parents;
 	}
@@ -574,9 +564,9 @@ public class WikiPage {
 	private static String[] parentCats(Wiki wiki, String title,
 			boolean sortkey, boolean ignoreHidden) throws IOException {
 		String[] temp = wiki.getCategories(title, sortkey, ignoreHidden);
-		for (int t = 0; t < temp.length; t++) {
+		for (String t : temp) {
 			// remove the "Category:" prefix string
-			temp[t] = temp[t].split(":", 2)[1];
+			t = t.split(":", 2)[1];
 		}
 		return temp;
 	}
