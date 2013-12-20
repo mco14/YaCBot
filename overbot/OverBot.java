@@ -17,7 +17,7 @@ public class OverBot {
 		String[] expectedArgsDescription = {
 				"username is your username on the wiki.",
 				"continueKey is the file where to continue from "
-						+ "(equals the name of the last edited file or \"null\")." };
+						+ "(equals the name of the last edited file or \"\")." };
 		if (args.length != expectedArgs.length) {
 			System.out.print("Usage: java -jar filename.jar");
 			for (String i : expectedArgs)
@@ -47,56 +47,50 @@ public class OverBot {
 	 * 
 	 * @param wiki
 	 *            Target wiki
-	 * @param category
-	 *            The category to be cleaned up
+	 * @param continueKey
+	 *            The key to start with (equals the last edited file)
 	 * @throws IOException
 	 * @throws LoginException
 	 */
-	private static void cleanup(Wiki wiki, String category, String user)
+	private static void cleanup(Wiki wiki, String continueKey, String user)
 			throws IOException, LoginException {
 
-		Object[] nextBatchObjects = wiki.listAllFiles("", 15);
-		String[] nextBatch = (String[]) nextBatchObjects[1];
-		String continueKey = (String) nextBatchObjects[0];
+		Object[] nextBatchObjects;
+		String[] nextBatch;
+		continueKey = continueKey.replace(' ', '_');
 		long crawled = 0;
 		long startTime = System.currentTimeMillis();
 
 		while (true) {
-			for (String i : nextBatch) {
-				/* * /
-				if (wiki.getLastEditor(i).equals(user))
-					continue;
-				if (i.startsWith("Category:")) {
-					// may cause infinite loop -> ignore for now
-					System.out.println("Found a subcategory " + i
-							+ " which is ignored.");
-					// first cleanup categoryMembers[i];
-					// then recursively cleanup(wiki, categoryMembers[i]);
-				}
-				if (i.startsWith("File:")) {}
-				*/
-					WikiPage target = new WikiPage(wiki, i);
-					target.cleanupOvercat(1);
-					// bot==false for now
-					target.writeText(false);
-				
-			}
-			long durationSecs = (System.currentTimeMillis()-startTime)/1000;
-			long days = durationSecs/(60*60*24);
-			long hours = (durationSecs%(60*60*24))/(60*60);
-			long minutes = (durationSecs%(60*60))/60;
-			long seconds = durationSecs%60;
-			System.out.println("\nStatus:\n"+crawled + " files crawled in "
-			   +days+" days "+hours+" hours "+minutes+" minutes "+ seconds
-			   +" seconds. Thus it took"+(durationSecs/crawled)+" seconds per file.\n");
-			if (continueKey.length() > 0)
-				break; // No next batch available
-			System.out
-					.println("Requesting next batch of files to work with. (Continue from "
-							+ continueKey + " )");
 			nextBatchObjects = wiki.listAllFiles(continueKey, 15);
 			nextBatch = (String[]) nextBatchObjects[1];
 			continueKey = (String) nextBatchObjects[0];
+			crawled += nextBatch.length;
+
+			for (String i : nextBatch) {
+				WikiPage target = new WikiPage(wiki, i);
+				target.cleanupOvercat(1);
+				// bot==false for now
+				target.writeText(false);
+			}
+			{
+				long durationSecs = (System.currentTimeMillis() - startTime) / 1000;
+				long days = durationSecs / (60 * 60 * 24);
+				long hours = (durationSecs % (60 * 60 * 24)) / (60 * 60);
+				long minutes = (durationSecs % (60 * 60)) / 60;
+				long seconds = durationSecs % 60;
+				System.out.println("\nStatus:\n" + crawled
+						+ " files crawled in " + days + " days " + hours
+						+ " hours " + minutes + " minutes " + seconds
+						+ " seconds. Thus it took "
+						+ (crawled == 0 ? "Inf" : (durationSecs / crawled))
+						+ " seconds per file.\n");
+			}
+			if (continueKey.length() == 0)
+				break; // No next batch available
+			System.out
+					.println("Requesting next batch of files to work with. (Continue from "
+							+ continueKey + ")");
 		}
 		System.out.println("All batches done. Exiting.");
 	}

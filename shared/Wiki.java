@@ -4035,7 +4035,7 @@ public class Wiki implements Serializable
             String line = fetch(url.toString() + next, "getCategoryMembers");
 
             // parse cmcontinue if it is there
-            if (line.contains("cmcontinue"))
+            if (line.contains("<query-continue>"))
                 next = parseAttribute(line, "cmcontinue", 0);
             else
                 next = null;
@@ -4074,23 +4074,20 @@ public class Wiki implements Serializable
 	public Object[] listAllFiles(String continueKey, int amount) throws IOException
 	{
         StringBuilder url = new StringBuilder(query);
-        url.append("list=allpages&apcontinue="+continueKey+"&apnamespace=6&apfilterredir=nonredirects&aplimit="+amount);
-        
-        ArrayList<String> members = new ArrayList<String>();
-        
+        url.append("list=allpages&apcontinue="+URLEncoder.encode(continueKey, "UTF-8")+"&apnamespace=6&apfilterredir=nonredirects&aplimit="+amount);
         String line = fetch(url.toString(), "listAllFiles");
-        
+
+        ArrayList<String> members = new ArrayList<String>();
         // xml form: <p pageid="22097388" ns="6" title="File:~2009-07-09 סימטאות יפה העתיקה.jpg" />
         for (int x = line.indexOf("<p "); x > 0; x = line.indexOf("<p ", ++x))
         	members.add(decode(parseAttribute(line, "title", x)));
-            
-        if (line.contains("<allpages apcontinue=\""))
-        	continueKey = parseAttribute(line, "apcontinue", 0);
+        if (line.contains("<query-continue>"))
+        	continueKey = decode(parseAttribute(line, "apcontinue", 0));
         else
         	continueKey = "";
-        
+
         int size = members.size();
-        log(Level.INFO, "Successfully retrieved next "+amount + " files (" + size + " items)", "getCategoryMembers");
+        log(Level.INFO, "Successfully retrieved next files (" + size + " items)", "listAllFiles");
         return new Object[] {continueKey , members.toArray(new String[size])};
 	}
 
