@@ -326,23 +326,21 @@ public class WikiPage {
 			this.cleanupWikitext();
 		Category[] parentCategories = getParentCatsNoDupes();
 		Object[] cleanedCatsAndText = returnCleanedCatsAndText(
-				parentCategories, this.returnAllGrandparentCats(depth, true));
+				!editSummary.isEmpty(), parentCategories,
+				this.returnAllGrandparentCats(depth, true));
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
+		this.setText((removeCatsFromText(parentCategories, this.getText()) + cleanCategoryWikitext)
+				.replaceAll("\\n{3,}", "\n\n"));
+		this.parents = cleanParentCategories;
 		int numberOfRemovedCategories = parentCategories.length
 				- cleanParentCategories.length;
-		if (numberOfRemovedCategories > 0) {
-			// only if categories could be cleaned up: Set new parent-categories
-			// and text as well as the editSummary
-			this.setText((removeCatsFromText(parentCategories, this.getText()) + cleanCategoryWikitext)
-					.replaceAll("\\n{3,}", "\n\n"));
-			this.parents = cleanParentCategories;
+		if (numberOfRemovedCategories > 0)
 			this.editSummary = "Removed "
 					+ numberOfRemovedCategories
 					+ " categories which are [[COM:OVERCAT|parent]] of already present categories: "
 					+ removedCategoriesWikitext + ". " + this.getEditSummary();
-		}
 	}
 
 	/**
@@ -350,6 +348,9 @@ public class WikiPage {
 	 * two wiki-code-texts: The removed categories (used for the editSummary)
 	 * and the wiki-code representation of the "clean" parent-categories
 	 * 
+	 * @param cleanupAnyway
+	 *            Whether to clean up regardless of the number of removed
+	 *            categories or not
 	 * @param parentCategories
 	 *            The (not yet clean) parent-categories
 	 * @param grandparentStrings
@@ -357,7 +358,7 @@ public class WikiPage {
 	 *            the grandparent categories
 	 * @return The three items bundled into a JAVA-Object array
 	 */
-	private static Object[] returnCleanedCatsAndText(
+	private static Object[] returnCleanedCatsAndText(boolean cleanupAnyway,
 			Category[] parentCategories, String[] grandparentStrings) {
 		Category[] cleanCategories = new Category[parentCategories.length];
 		String categoryWikitext = "";
@@ -383,13 +384,14 @@ public class WikiPage {
 		}
 		// create a new array for the clean categories taking into account the
 		// number of redundant categories
-		if (revokedCounter > 0) {
+		if (cleanupAnyway || revokedCounter > 0) {
 			Category[] cleanCategoriesReturn = new Category[cleanCategories.length
 					- revokedCounter];
 			int temp = 0;
 			for (Category i : cleanCategories) {
 				if (!i.getName().equals(revokedFlag)) {
-					cleanCategoriesReturn[temp++] = i;
+					if (revokedCounter > 0)
+						cleanCategoriesReturn[temp++] = i;
 					categoryWikitext = categoryWikitext
 							+ "\n[[Category:"
 							+ i.getName()
@@ -397,9 +399,11 @@ public class WikiPage {
 									+ i.getSortkey() + "]]");
 				}
 			}
-			removedCatsWikitext = removedCatsWikitext.substring(0,
-					removedCatsWikitext.length() - 1);
-			cleanCategories = cleanCategoriesReturn;
+			if (revokedCounter > 0) {
+				removedCatsWikitext = removedCatsWikitext.substring(0,
+						removedCatsWikitext.length() - 1);
+				cleanCategories = cleanCategoriesReturn;
+			}
 		}
 		return new Object[] { cleanCategories, removedCatsWikitext,
 				categoryWikitext };

@@ -58,33 +58,34 @@ public class OverBot {
 		Object[] nextBatchObjects;
 		String[] nextBatch;
 		continueKey = continueKey.replace(' ', '_');
-		long crawled = 0;
+		long total = 0;
 		long startTime = System.currentTimeMillis();
 
 		while (true) {
 			nextBatchObjects = wiki.listAllFiles(continueKey, 15);
 			nextBatch = (String[]) nextBatchObjects[1];
 			continueKey = (String) nextBatchObjects[0];
-			crawled += nextBatch.length;
+			total += nextBatch.length;
 
 			for (String i : nextBatch) {
+				// break if page is protected and you are not able to edit
+				// protected pages
 				WikiPage target = new WikiPage(wiki, i);
 				target.cleanupOvercat(1);
 				// bot==false for now
 				target.writeText(false);
 			}
 			{
-				long durationSecs = (System.currentTimeMillis() - startTime) / 1000;
-				long days = durationSecs / (60 * 60 * 24);
-				long hours = (durationSecs % (60 * 60 * 24)) / (60 * 60);
-				long minutes = (durationSecs % (60 * 60)) / 60;
-				long seconds = durationSecs % 60;
-				System.out.println("\nStatus:\n" + crawled
-						+ " files crawled in " + days + " days " + hours
-						+ " hours " + minutes + " minutes " + seconds
-						+ " seconds. Thus it took "
-						+ (crawled == 0 ? "Inf" : (durationSecs / crawled))
-						+ " seconds per file.\n");
+				long runtime = (System.currentTimeMillis() - startTime) / 1000;
+				long days = runtime / (60 * 60 * 24);
+				long hours = (runtime % (60 * 60 * 24)) / (60 * 60);
+				long minutes = (runtime % (60 * 60)) / 60;
+				long seconds = runtime % 60;
+				float avg = ((float) runtime / (float) total);
+				System.out.println("\nStatus:\n" + total + " files crawled in "
+						+ days + " days " + hours + " hours " + minutes
+						+ " minutes " + seconds + " seconds. Thus it took "
+						+ (total == 0 ? "Inf" : avg) + " seconds per file.\n");
 			}
 			if (continueKey.length() == 0)
 				break; // No next batch available
