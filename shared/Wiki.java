@@ -4063,6 +4063,38 @@ public class Wiki implements Serializable
     }
 
     /**
+     * Return the next batch of files ...
+     *  
+     * @param continueKey the file to continue from 
+     * @param amount the amount of file names to return
+     * @return an object containing all file names of the batch
+     * request and the file to continue from
+     * @throws IOException 
+     */
+	public Object[] listAllFiles(String continueKey, int amount) throws IOException
+	{
+        StringBuilder url = new StringBuilder(query);
+        url.append("list=allpages&apcontinue="+continueKey+"&apnamespace=6&apfilterredir=nonredirects&aplimit="+amount);
+        
+        ArrayList<String> members = new ArrayList<String>();
+        
+        String line = fetch(url.toString(), "listAllFiles");
+        
+        // xml form: <p pageid="22097388" ns="6" title="File:~2009-07-09 סימטאות יפה העתיקה.jpg" />
+        for (int x = line.indexOf("<p "); x > 0; x = line.indexOf("<p ", ++x))
+        	members.add(decode(parseAttribute(line, "title", x)));
+            
+        if (line.contains("<allpages apcontinue=\""))
+        	continueKey = parseAttribute(line, "apcontinue", 0);
+        else
+        	continueKey = "";
+        
+        int size = members.size();
+        log(Level.INFO, "Successfully retrieved next "+amount + " files (" + size + " items)", "getCategoryMembers");
+        return new Object[] {continueKey , members.toArray(new String[size])};
+	}
+
+    /**
      *  Searches the wiki for external links. Equivalent to [[Special:Linksearch]].
      *  Returns two lists, where the first is the list of pages and the
      *  second is the list of urls. The index of a page in the first list

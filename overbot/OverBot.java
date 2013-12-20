@@ -1,6 +1,7 @@
 package overbot;
 
 import java.io.IOException;
+
 import javax.security.auth.login.LoginException;
 
 import shared.Wiki;
@@ -10,22 +11,20 @@ public class OverBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.15");
+		System.out.println("v13.12.20");
 
-		String[] expectedArgs = { "username", "category" };
+		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {
 				"username is your username on the wiki.",
-				"category is the category which itmes (files or subcategories) should be cleaned up" };
-
+				"continueKey is the file where to continue from "
+						+ "(equals the name of the last edited file or \"null\")." };
 		if (args.length != expectedArgs.length) {
 			System.out.print("Usage: java -jar filename.jar");
-			for (int i = 0; i < expectedArgs.length; i++) {
-				System.out.print(" [" + expectedArgs[i] + "]");
-			}
+			for (String i : expectedArgs)
+				System.out.print(" [" + i + "]");
 			System.out.println("");
-			for (int i = 0; i < expectedArgsDescription.length; i++) {
-				System.out.println("Where " + expectedArgsDescription[i]);
-			}
+			for (String i : expectedArgsDescription)
+				System.out.println("Where " + i);
 			System.exit(-1);
 		}
 		Wiki commons = new Wiki("commons.wikimedia.org");
@@ -37,7 +36,7 @@ public class OverBot {
 			commons.setThrottle(0 * 1000);
 			// Pause bot if lag is greater than ... in s
 			commons.setMaxLag(2);
-			cleanup(commons, args[1], args[0]);
+			cleanup(commons, args[1], args[0].equals("null") ? "" : args[0]);
 		} catch (LoginException | IOException e) {
 			e.printStackTrace();
 		}
@@ -56,27 +55,49 @@ public class OverBot {
 	private static void cleanup(Wiki wiki, String category, String user)
 			throws IOException, LoginException {
 
-		String[] categoryMembers = wiki.getCategoryMembers(category);
+		Object[] nextBatchObjects = wiki.listAllFiles("", 15);
+		String[] nextBatch = (String[]) nextBatchObjects[1];
+		String continueKey = (String) nextBatchObjects[0];
+		long crawled = 0;
+		long startTime = System.currentTimeMillis();
 
-		for (int i = 0; i < categoryMembers.length; i++) {
-			if (wiki.getLastEditor(categoryMembers[i]).equals(user))
-				continue;
-			if (categoryMembers[i].startsWith("Category:")) {
-				// may cause infinite loop -> ignore for now
-				System.out.println("Found a subcategory " + categoryMembers[i]
-						+ " which is ignored.");
-				// first cleanup categoryMembers[i];
-				// then recursively cleanup(wiki, categoryMembers[i]);
+		while (true) {
+			for (String i : nextBatch) {
+				/* * /
+				if (wiki.getLastEditor(i).equals(user))
+					continue;
+				if (i.startsWith("Category:")) {
+					// may cause infinite loop -> ignore for now
+					System.out.println("Found a subcategory " + i
+							+ " which is ignored.");
+					// first cleanup categoryMembers[i];
+					// then recursively cleanup(wiki, categoryMembers[i]);
+				}
+				if (i.startsWith("File:")) {}
+				*/
+					WikiPage target = new WikiPage(wiki, i);
+					target.cleanupOvercat(1);
+					// bot==false for now
+					target.writeText(false);
+				
 			}
-			if (categoryMembers[i].startsWith("File:")) {
-				WikiPage target = new WikiPage(wiki, categoryMembers[i]);
-				target.cleanupOvercat(1);
-				// bot==false for now
-				target.writeText(false);
-			}
+			long durationSecs = (System.currentTimeMillis()-startTime)/1000;
+			long days = durationSecs/(60*60*24);
+			long hours = (durationSecs%(60*60*24))/(60*60);
+			long minutes = (durationSecs%(60*60))/60;
+			long seconds = durationSecs%60;
+			System.out.println("\nStatus:\n"+crawled + " files crawled in "
+			   +days+" days "+hours+" hours "+minutes+" minutes "+ seconds
+			   +" seconds. Thus it took"+(durationSecs/crawled)+" seconds per file.\n");
+			if (continueKey.length() > 0)
+				break; // No next batch available
+			System.out
+					.println("Requesting next batch of files to work with. (Continue from "
+							+ continueKey + " )");
+			nextBatchObjects = wiki.listAllFiles(continueKey, 15);
+			nextBatch = (String[]) nextBatchObjects[1];
+			continueKey = (String) nextBatchObjects[0];
 		}
-		System.out
-				.println("Gone through all subcategories and files of [[:Category:"
-						+ category + "]]. Exiting.");
+		System.out.println("All batches done. Exiting.");
 	}
 }
