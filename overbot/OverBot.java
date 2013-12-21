@@ -68,10 +68,10 @@ public class OverBot {
 			total += nextBatch.length;
 
 			for (String i : nextBatch) {
-				// break if page is protected and you are not able to edit
+				// TODO breaks if page is protected and you are not able to edit
 				// protected pages
 				WikiPage target = new WikiPage(wiki, i);
-				target.cleanupOvercat(1);
+				target.cleanupOvercat(1, true);
 				// bot==false for now
 				target.writeText(false);
 			}
@@ -91,7 +91,7 @@ public class OverBot {
 				break; // No next batch available
 			System.out
 					.println("Requesting next batch of files to work with. (Continue from "
-							+ continueKey + ")");
+							+ continueKey + ")\n");
 		}
 		System.out.println("All batches done. Exiting.");
 	}

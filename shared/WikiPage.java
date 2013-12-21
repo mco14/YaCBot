@@ -319,15 +319,30 @@ public class WikiPage {
 	 *            The depth which the category tree should be examined. WARNING:
 	 *            Set to "1" if you are unsure about possible loops in the tree
 	 *            which will most likely cause unexpected behavior
+	 * @param ignoreHidden
+	 *            If hidden categories should be ignored during the search
 	 * @throws IOException
 	 */
-	public void cleanupOvercat(int depth) throws IOException {
+	public void cleanupOvercat(int depth, boolean ignoreHidden)
+			throws IOException {
 		if (!isCleanedup)
 			this.cleanupWikitext();
+		// Category array derived from the pageText
 		Category[] parentCategories = getParentCatsNoDupes();
+
+		// String array returned via the API, no duplicate entries, no sortkey,
+		// no prefix
+		String[] allGrandparentCategories;
+		{
+			Set<String> listSet = all_grand_parentCats(wiki,
+					parentCats(wiki, name, false, ignoreHidden), depth,
+					ignoreHidden);
+			allGrandparentCategories = listSet.toArray(new String[listSet
+					.size()]);
+		}
 		Object[] cleanedCatsAndText = returnCleanedCatsAndText(
 				!editSummary.isEmpty(), parentCategories,
-				this.returnAllGrandparentCats(depth, true));
+				allGrandparentCategories);
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
@@ -390,8 +405,7 @@ public class WikiPage {
 			int temp = 0;
 			for (Category i : cleanCategories) {
 				if (!i.getName().equals(revokedFlag)) {
-					if (revokedCounter > 0)
-						cleanCategoriesReturn[temp++] = i;
+					cleanCategoriesReturn[temp++] = i;
 					categoryWikitext = categoryWikitext
 							+ "\n[[Category:"
 							+ i.getName()
@@ -469,41 +483,21 @@ public class WikiPage {
 	}
 
 	/**
-	 * Return all grandparent categories for the given depth
-	 * 
-	 * @param depth
-	 *            The number of steps to be taken in the direction of the
-	 *            category-tree root
-	 * @param ignoreHidden
-	 *            If hidden categories should be ignored during the search
-	 * @return A string array containing all grandparentcats without duplicate
-	 *         entries
-	 * @throws IOException
-	 */
-	private String[] returnAllGrandparentCats(int depth, boolean ignoreHidden)
-			throws IOException {
-		// Do not use the categories found in the page text
-		// Instead use the categories returned by the API
-		String[] parentCategories = parentCats(wiki, name, false, ignoreHidden);
-		Set<String> listSet = all_grand_parentCats(wiki, parentCategories,
-				depth, ignoreHidden);
-		return listSet.toArray(new String[listSet.size()]);
-	}
-
-	/**
 	 * A static method which calls itself in a recursive manner to create a
 	 * string-set of all grandparent categories
 	 * 
 	 * @param wiki
 	 *            The wiki to connect to
 	 * @param categories
-	 *            The categories whose pageText gets evaluated by the method
+	 *            The categories to be evaluated by the method (Must not include
+	 *            the "Category:" prefix)
 	 * @param depth
 	 *            The depth to be examined (depth == 1 means no recursion at
 	 *            all)
 	 * @param ignoreHidden
 	 *            If hidden categories should not be considered during search
-	 * @return The string-set which was recursively generated
+	 * @return The string-set which was recursively generated (Contains only the
+	 *         Category name, no prefix, no sortkey, no duplicate entries)
 	 * @throws IOException
 	 */
 	private static Set<String> all_grand_parentCats(Wiki wiki,
@@ -562,16 +556,16 @@ public class WikiPage {
 	 * @param ignoreHidden
 	 *            If hidden categories should be ignored during the search
 	 * @return A string array containing all categories and (if desired) the
-	 *         sortkey separated by "|"
+	 *         sortkey separated by "|". (The "Category:" prefix string is
+	 *         wiped!)
 	 * @throws IOException
 	 */
 	private static String[] parentCats(Wiki wiki, String title,
 			boolean sortkey, boolean ignoreHidden) throws IOException {
 		String[] temp = wiki.getCategories(title, sortkey, ignoreHidden);
-		for (String t : temp) {
+		for (int t = 0; t < temp.length; t++)
 			// remove the "Category:" prefix string
-			t = t.split(":", 2)[1];
-		}
+			temp[t] = temp[t].split(":", 2)[1];
 		return temp;
 	}
 
@@ -584,8 +578,8 @@ public class WikiPage {
 	 *            The text to be evaluated (Commented content gets ignored)
 	 * @param sortkey
 	 *            If the sortkey should be included into the string array
-	 * @return A string array containing all categories and (if desired) the
-	 *         sortkey separated by "|"
+	 * @return A string array containing all category names (no "Category:"
+	 *         prefix) and (if desired) the sortkey separated by "|"
 	 */
 	public static String[] parentCatsFromPagetext(Wiki wiki, String text,
 			boolean sortkey) {
@@ -598,28 +592,25 @@ public class WikiPage {
 			// be valid
 			// [%!\"$&'()*,\\-.\\/0-9:;=?@A-Z\\\\^_`a-z~\\x80-\\xFF+]
 		}
-		// TODO Merge both while-loops if possible
 		int hits = 0;
+		List<String> parentsList = new ArrayList<String>();
 		while (m.find()) {
 			System.out.println("Category " + ++hits + " found in page-text: "
 					+ m.group());
-		}
-		m.reset();
-		String[] parents = new String[hits];
-		hits = 0;
-		while (m.find()) {
 			if (sortkey == false) {
 				// Only the name of the category
-				parents[hits++] = WikiPage.firstCharToUpperCase(m.group()
+				parentsList.add(WikiPage.firstCharToUpperCase(m.group()
 						.substring(2, m.group().length() - 2).split(":", 2)[1]
-						.split("\\|", 2)[0]);
+						.split("\\|", 2)[0]));
 			} else {
 				// The name and the sortkey (if existent)
-				parents[hits++] = WikiPage.firstCharToUpperCase(m.group()
-						.substring(2, m.group().length() - 2).split(":", 2)[1]);
+				parentsList
+						.add(WikiPage.firstCharToUpperCase(m.group()
+								.substring(2, m.group().length() - 2)
+								.split(":", 2)[1]));
 			}
 		}
-		return parents;
+		return parentsList.toArray(new String[parentsList.size()]);
 	}
 
 	/**
