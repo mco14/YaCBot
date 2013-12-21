@@ -218,7 +218,7 @@ public class WikiPage {
 				.replaceAll(
 						caseInsensitive
 								+ "\\[https?://([a-z0-9\\-]{2,3})\\.(?:(w)ikipedia|(wikt)ionary|wiki(n)ews|wiki(b)ooks|wiki(q)uote|wiki(s)ource|wiki(v)ersity|wiki(voy)age)\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
-						"[[$2$3$4$5$6$7$8:$1:$9|$10]]")
+						"[[$2$3$4$5$6$7$8$9:$1:$10|$11]]")
 				.replaceAll(
 						caseInsensitive
 								+ "\\[https?://(?:(m)eta|(incubator)|(quality))\\.wikimedia\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
