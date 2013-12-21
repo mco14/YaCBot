@@ -346,8 +346,17 @@ public class WikiPage {
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
-		this.setText((removeCatsFromText(parentCategories, this.getText()) + cleanCategoryWikitext)
-				.replaceAll("\\n{3,}", "\n\n"));
+
+		// Removes the categories from the text while ignoring the content of
+		// comments (between "<!--" and "-->")
+		String text = getText();
+		for (Category z : parentCategories)
+			text = replaceAllIgnoreComments(text, "(?iu)" + "\\[\\[Category:"
+					+ "\\Q" + z.getName() + "\\E" + "(\\|[^}#\\]\\[{><]*)?"
+					+ "\\]\\]", "");
+
+		this.setText((text + cleanCategoryWikitext).replaceAll("\\n{3,}",
+				"\n\n"));
 		this.parents = cleanParentCategories;
 		int numberOfRemovedCategories = parentCategories.length
 				- cleanParentCategories.length;
@@ -421,24 +430,6 @@ public class WikiPage {
 		}
 		return new Object[] { cleanCategories, removedCatsWikitext,
 				categoryWikitext };
-	}
-
-	/**
-	 * Removes the given categories from the given text while ignoring the
-	 * content of comments (between "<!--" and "-->")
-	 * 
-	 * @param categories
-	 *            The categories to be removed from the text
-	 * @param text
-	 *            The text to be altered
-	 * @return The altered text
-	 */
-	private static String removeCatsFromText(Category[] categories, String text) {
-		for (Category z : categories) {
-			text = replaceAllIgnoreComments(text, "(?iu)" + "\\[\\[Category:"
-					+ z.getName() + "(\\|[^}#\\]\\[{><]*)?" + "\\]\\]", "");
-		}
-		return text;
 	}
 
 	/**
@@ -519,7 +510,7 @@ public class WikiPage {
 	}
 
 	/**
-	 * Return the parent categories of the WikiPage
+	 * Return the parent categories of the WikiPage derived from the pageText
 	 * 
 	 * @return The Category array with no duplicate entries
 	 * @throws IOException
@@ -643,15 +634,12 @@ public class WikiPage {
 	 * Write the text of the WikiPage to the wiki if any relevant changes were
 	 * made
 	 * 
-	 * @param bot
-	 *            Toggle whether to edit with the bot flag or not
 	 * @throws LoginException
 	 * @throws IOException
 	 */
-	public void writeText(boolean bot) throws LoginException, IOException {
+	public void writeText() throws LoginException, IOException {
 		if (this.getEditSummary().length() == 0)
 			return;
-		wiki.setMarkBot(bot);
 		wiki.edit(this.getName(), this.getText(),
 				"Bot: " + this.getEditSummary());
 		this.editSummary = "";

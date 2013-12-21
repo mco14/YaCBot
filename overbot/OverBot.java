@@ -11,7 +11,7 @@ public class OverBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.20");
+		System.out.println("v13.12.21");
 
 		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {
@@ -33,9 +33,11 @@ public class OverBot {
 					+ ".");
 			commons.login(args[0], System.console().readPassword());
 			// Minimum time between edits in ms
-			commons.setThrottle(0 * 1000);
+			commons.setThrottle(5 * 1000);
 			// Pause bot if lag is greater than ... in s
 			commons.setMaxLag(2);
+			commons.setMarkMinor(true);
+			commons.setMarkBot(false);
 			cleanup(commons, args[1], args[0].equals("null") ? "" : args[0]);
 		} catch (LoginException | IOException e) {
 			e.printStackTrace();
@@ -68,12 +70,12 @@ public class OverBot {
 			total += nextBatch.length;
 
 			for (String i : nextBatch) {
-				// TODO breaks if page is protected and you are not able to edit
-				// protected pages
+				if ((wiki.getPageInfo(i).get("protection")).toString()
+						.contains("edit=sysop"))
+					continue;
 				WikiPage target = new WikiPage(wiki, i);
 				target.cleanupOvercat(1, true);
-				// bot==false for now
-				target.writeText(false);
+				target.writeText();
 			}
 			{
 				long runtime = (System.currentTimeMillis() - startTime) / 1000;
