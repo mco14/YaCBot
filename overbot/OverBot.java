@@ -11,7 +11,7 @@ public class OverBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.21");
+		System.out.println("v13.12.22");
 
 		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {

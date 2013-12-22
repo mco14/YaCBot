@@ -5,18 +5,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.security.auth.login.LoginException;
 
 public class WikiPage {
 	private boolean isFile;
 	private String name;
 	private Category[] parents;
-	private String text;
+	private String[] text;
 	private Wiki wiki;
 	private boolean isCleanedup;
 	// editSummary stays empty if only minor cleanups were made
@@ -36,7 +36,7 @@ public class WikiPage {
 		this.isFile = name.split(":", 2)[0].toLowerCase().equals("file");
 		this.wiki = wiki;
 		this.name = name;
-		this.text = wiki.getPageText(name);
+		this.setPlainText(wiki.getPageText(name));
 		this.isCleanedup = false;
 		this.editSummary = "";
 	}
@@ -49,219 +49,249 @@ public class WikiPage {
 		return name;
 	}
 
-	public String getText() {
-		return text;
+	/**
+	 * Calculates the plain Wikitext of the page from the internal
+	 * representation
+	 * 
+	 * @return A single String with the whole wikitext of the page
+	 */
+	public String getPlainText() {
+		String plainText = "";
+		for (int t = 0; t < text.length; t += 2)
+			plainText += text[t];
+		return plainText;
 	}
 
-	public void setText(String text) {
-		this.text = text;
+	public void setPlainText(String text) {
+		LinkedList<String> tokenizedWikitext = tokenizeWikitext(text);
+		this.text = tokenizedWikitext.toArray(new String[tokenizedWikitext
+				.size()]);
 	}
 
 	public void cleanupWikitext() {
 		this.isCleanedup = true;
 		String caseInsensitive = "(?iu)";
 		String caseInsensitiveMultiline = "(?ium)";
-		String cleanText;
-		if (isFile) {
-			cleanText = text
-					.replaceAll(
-							caseInsensitiveMultiline
-									+ "^== *(summary|sumario|descri(ption|pción|ção do arquivo)|achoimriú)( */ *(summary|sumario|descri(ption|pción|ção do arquivo)|achoimriú))? *==",
-							"== {{int:filedesc}} ==")
-					.replaceAll(
-							caseInsensitiveMultiline
-									+ "^== *(\\[\\[.*?\\|)?(licen[cs](e|ing|ia)( */ *licen[cs](e|ing|ia))?|\\{\\{int:license\\}\\})(\\]\\])?:? *==",
-							"== {{int:license-header}} ==")
-					.replaceAll(
-							caseInsensitiveMultiline
-									+ "^== *(original upload (log|history)|file history|ursprüngliche bild-versionen) *==",
-							"== {{original upload log}} ==")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *technique *= *)(?:\\{\\{ *(?:en|de) *\\|)? *(?:oil[ -]on[ -]canvas|öl[ -]auf[ -]leinwand) *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
-							"$1{{technique|oil|canvas}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *technique *= *)\\{\\{ *de *\\| *öl[ -]auf[ -]holz *\\}\\}(\\||\\}\\}|\\r|\\n)",
-							"$1{{technique|oil|wood}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *technique *= *)\\{\\{ *de *\\| *öl[ -]auf[ -]eichenholz *\\}\\}(\\||\\}\\}|\\r|\\n)",
-							"$1{{technique|oil|panel|wood=oak}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *technique *= *)(?:\\{\\{ *en *\\|)? *oil[ -]on[ -]panel *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
-							"$1{{technique|oil|panel}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *technique *= *)\\{\\{ *de *\\| *aquarell *\\}\\}(\\||\\}\\}|\\r|\\n)",
-							"$1{{technique|watercolor}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *technique *= *)\\{\\{ *de *\\| *fresko *\\}\\}(\\||\\}\\}|\\r|\\n)",
-							"$1{{technique|fresco}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *(?:author|artist) *= *)(?:unknown|\\{\\{unknown\\}\\}|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
-							"$1{{unknown|author}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *source *= *)(?:own work)? *(?:-|;|</?br *[/\\\\]?>)? *(?:own(?: work(?: by uploader)?)?|(?:œuvre |travail )?personnel(?:le)?|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io) *(?:\\(own work\\))?\\.? *(\\||\\}\\}|\\r|\\n)",
-							"$1{{own}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *source *= *)(?:\\{\\{[a-z]{2,3} *\\|)? *(?:own(?: work(?: by uploader)?)?|travail personnel|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io) *(?:\\}\\})? *(?:\\{\\{[a-z]{2,3} *\\|)? *(?:\\(?(?:own *work)\\)?)? *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
-							"$1{{own}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *author *= *)(?:anonym(?:e|ous)?|anonyymi|anoniem|an[oòóô]nimo?|ismeretlen|不明（匿名）|미상|ανώνυμος|аноним(?:ен|ный художник)|neznámy|nieznany)\\.? *(\\||\\}\\}|\\r|\\n)",
-							"$1{{anonymous}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *gallery *= *)private(?: collection)? *(\\||\\}\\}|\\r|\\n)",
-							"$1{{private collection}}$2");
-			cleanText = multipleReplaceAll(cleanText, caseInsensitiveMultiline
-					+ "^ *== *(.*?) *== *[\\r\\n]+ *== *\\1 *== *$", "== $1 ==");
-			if (!(text.equals(cleanText))) {
-				this.editSummary = editSummary
-						+ "[[Com:IntRegex|Internationalisation]]. ";
-				this.text = cleanText;
-			}
-			cleanText = text
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *description *=) *(?:\\{\\{ *description missing *\\}\\}|(?:\\{\\{en *\\|)? *(?:'')?no original description(?:'')? *(?:\\}\\})?) *(\\||\\}\\}|\\r|\\n)",
-							"$1$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *permission *=) *(?:-|see(?: licens(?:e|ing))?(?: below)?|yes|oui)\\.? *(\\||\\}\\}|\\r|\\n)",
-							"$1$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *other[_ ]versions *=) *(?:<i>)?(?:-|no|none?(?: known)?)\\.?(?:</i>)? *(\\||\\}\\}|\\r|\\n)",
-							"$1$2");
-			if (!(text.equals(cleanText))) {
-				this.editSummary = editSummary
-						+ "Removing redundant information. ";
-				// per
-				// https://commons.wikimedia.org/wiki/Commons:IntRegex#.7B.7BInformation.7D.7D_fields
-				this.text = cleanText;
-			}
-			cleanText = text
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *date *= *)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(0[1-9]|1[0-2])\\3(1[3-9]|2[0-9]|3[01])(\\||\\}\\}|\\r|\\n)",
-							"$1$2-$4-$5$6")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *date *= *)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3(0[1-9]|1[0-2])(\\||\\}\\}|\\r|\\n)",
-							"$1$2-$5-$4$6")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *date *= *)(?:created|made|taken)? *(0[1-9]|1[0-2])(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3([0-9]{4})(\\||\\}\\}|\\r|\\n)",
-							"$1$5-$2-$4$6")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *date *= *)(?:created|made|taken)? *(1[3-9]|2[0-9]|3[01])(-| |/|\\.|)(0[1-9]|1[0-2])\\3(2[0-9]{3}|1[89][0-9]{2})(\\||\\}\\}|\\r|\\n)",
-							"$1$5-$4-$2$6")
+		// Stuff that involves comments to be replaced comes here
+		this.setPlainText(getPlainText()
+				.replaceAll(
+						caseInsensitive
+								+ "(<!--)? *\\{\\{ImageUpload\\|(full|basic)\\}\\} *(-->)? *\\n?",
+						"")
+				.replaceAll(
+						caseInsensitive
+								+ " *<!-- *Remove this line once you have added categories *--> *",
+						"")
+				.replaceAll(caseInsensitive + " *<!-- *categories *--> *\\n?",
+						""));
+		// Stuff that must ignore comments follows
+		for (int i = 0; i < text.length; ++i) {
+			String cleanText;
+			String textPart;
+			if (text[i++].equals("true"))
+				textPart = text[i];
+			else
+				continue;
 
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *date *= *)(?:created|made|taken)? *\\{\\{date\\|([0-9]{4})\\|(0[1-9]|1[012])\\|(0?[1-9]|1[0-9]|2[0-9]|3[01])\\}\\}(\\||\\}\\}|\\r|\\n)",
-							"$1$2-$3-$4$5")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *(?:date|year) *= *)(\\d\\d?)(?:st|nd|rd|th) *century *(\\||\\}\\}|\\r|\\n)",
-							"$1{{other date|century|$2}}$3")
+			if (isFile) {
+				cleanText = textPart
+						.replaceAll(
+								caseInsensitiveMultiline
+										+ "^== *(summary|sumario|descri(ption|pción|ção do arquivo)|achoimriú)( */ *(summary|sumario|descri(ption|pción|ção do arquivo)|achoimriú))? *==",
+								"== {{int:filedesc}} ==")
+						.replaceAll(
+								caseInsensitiveMultiline
+										+ "^== *(\\[\\[.*?\\|)?(licen[cs](e|ing|ia)( */ *licen[cs](e|ing|ia))?|\\{\\{int:license\\}\\})(\\]\\])?:? *==",
+								"== {{int:license-header}} ==")
+						.replaceAll(
+								caseInsensitiveMultiline
+										+ "^== *(original upload (log|history)|file history|ursprüngliche bild-versionen) *==",
+								"== {{original upload log}} ==")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *technique *= *)(?:\\{\\{ *(?:en|de) *\\|)? *(?:oil[ -]on[ -]canvas|öl[ -]auf[ -]leinwand) *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
+								"$1{{technique|oil|canvas}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *technique *= *)\\{\\{ *de *\\| *öl[ -]auf[ -]holz *\\}\\}(\\||\\}\\}|\\r|\\n)",
+								"$1{{technique|oil|wood}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *technique *= *)\\{\\{ *de *\\| *öl[ -]auf[ -]eichenholz *\\}\\}(\\||\\}\\}|\\r|\\n)",
+								"$1{{technique|oil|panel|wood=oak}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *technique *= *)(?:\\{\\{ *en *\\|)? *oil[ -]on[ -]panel *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
+								"$1{{technique|oil|panel}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *technique *= *)\\{\\{ *de *\\| *aquarell *\\}\\}(\\||\\}\\}|\\r|\\n)",
+								"$1{{technique|watercolor}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *technique *= *)\\{\\{ *de *\\| *fresko *\\}\\}(\\||\\}\\}|\\r|\\n)",
+								"$1{{technique|fresco}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *(?:author|artist) *= *)(?:unknown|\\{\\{unknown\\}\\}|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{unknown|author}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *source *= *)(?:own work)? *(?:-|;|</?br *[/\\\\]?>)? *(?:own(?: work(?: by uploader)?)?|(?:œuvre |travail )?personnel(?:le)?|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io) *(?:\\(own work\\))?\\.? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{own}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *source *= *)(?:\\{\\{[a-z]{2,3} *\\|)? *(?:own(?: work(?: by uploader)?)?|travail personnel|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io) *(?:\\}\\})? *(?:\\{\\{[a-z]{2,3} *\\|)? *(?:\\(?(?:own *work)\\)?)? *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
+								"$1{{own}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *author *= *)(?:anonym(?:e|ous)?|anonyymi|anoniem|an[oòóô]nimo?|ismeretlen|不明（匿名）|미상|ανώνυμος|аноним(?:ен|ный художник)|neznámy|nieznany)\\.? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{anonymous}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *gallery *= *)private(?: collection)? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{private collection}}$2");
+				cleanText = multipleReplaceAll(
+						cleanText,
+						caseInsensitiveMultiline
+								+ "^ *== *(.*?) *== *[\\r\\n]+ *== *\\1 *== *$",
+						"== $1 ==");
+				if (!(textPart.equals(cleanText))) {
+					this.editSummary = editSummary
+							+ "[[Com:IntRegex|Internationalisation]]. ";
+					textPart = cleanText;
+				}
+				cleanText = textPart
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *description *=) *(?:\\{\\{ *description missing *\\}\\}|(?:\\{\\{en *\\|)? *(?:'')?no original description(?:'')? *(?:\\}\\})?) *(\\||\\}\\}|\\r|\\n)",
+								"$1$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *permission *=) *(?:-|see(?: licens(?:e|ing))?(?: below)?|yes|oui)\\.? *(\\||\\}\\}|\\r|\\n)",
+								"$1$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *other[_ ]versions *=) *(?:<i>)?(?:-|no|none?(?: known)?)\\.?(?:</i>)? *(\\||\\}\\}|\\r|\\n)",
+								"$1$2");
+				if (!(textPart.equals(cleanText))) {
+					this.editSummary = editSummary
+							+ "Removing redundant information. ";
+					// per
+					// https://commons.wikimedia.org/wiki/Commons:IntRegex#.7B.7BInformation.7D.7D_fields
+					textPart = cleanText;
+				}
+				cleanText = textPart
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *date *= *)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(0[1-9]|1[0-2])\\3(1[3-9]|2[0-9]|3[01])(\\||\\}\\}|\\r|\\n)",
+								"$1$2-$4-$5$6")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *date *= *)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3(0[1-9]|1[0-2])(\\||\\}\\}|\\r|\\n)",
+								"$1$2-$5-$4$6")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *date *= *)(?:created|made|taken)? *(0[1-9]|1[0-2])(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3([0-9]{4})(\\||\\}\\}|\\r|\\n)",
+								"$1$5-$2-$4$6")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *date *= *)(?:created|made|taken)? *(1[3-9]|2[0-9]|3[01])(-| |/|\\.|)(0[1-9]|1[0-2])\\3(2[0-9]{3}|1[89][0-9]{2})(\\||\\}\\}|\\r|\\n)",
+								"$1$5-$4-$2$6")
 
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *(?:date|year) *= *)(?:cir)?ca?\\.? *(\\d{4}) *(\\||\\}\\}|\\r|\\n)",
-							"$1{{other date|~|$2}}$3")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *(?:date|year) *= *)(?:unknown|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
-							"$1{{other date|?}}$2")
-					.replaceAll(
-							caseInsensitive
-									+ "(\\| *date *= *)(?:\\{\\{date\\|)?([0-9]{4})[|-](0[1-9]|1[012])[|-](0[1-9]|1[0-9]|2[0-9]|3[01])(?:\\}\\})? *\\((original upload date|according to EXIF data)\\) *(\\||\\}\\}|\\r|\\n)",
-							"$1{{$5|$2-$3-$4}}$6");
-			if (!(text.equals(cleanText))) {
-				this.editSummary = editSummary
-						+ "[[Com:Regex#Dates|Standardizing dates]]. ";
-				this.text = cleanText;
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *date *= *)(?:created|made|taken)? *\\{\\{date\\|([0-9]{4})\\|(0[1-9]|1[012])\\|(0?[1-9]|1[0-9]|2[0-9]|3[01])\\}\\}(\\||\\}\\}|\\r|\\n)",
+								"$1$2-$3-$4$5")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *(?:date|year) *= *)(\\d\\d?)(?:st|nd|rd|th) *century *(\\||\\}\\}|\\r|\\n)",
+								"$1{{other date|century|$2}}$3")
+
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *(?:date|year) *= *)(?:cir)?ca?\\.? *(\\d{4}) *(\\||\\}\\}|\\r|\\n)",
+								"$1{{other date|~|$2}}$3")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *(?:date|year) *= *)(?:unknown|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{other date|?}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\| *date *= *)(?:\\{\\{date\\|)?([0-9]{4})[|-](0[1-9]|1[012])[|-](0[1-9]|1[0-9]|2[0-9]|3[01])(?:\\}\\})? *\\((original upload date|according to EXIF data)\\) *(\\||\\}\\}|\\r|\\n)",
+								"$1{{$5|$2-$3-$4}}$6");
+				if (!(textPart.equals(cleanText))) {
+					this.editSummary = editSummary
+							+ "[[Com:Regex#Dates|Standardizing dates]]. ";
+					textPart = cleanText;
+				}
+				cleanText = textPart.replaceAll("__ *NOTOC *__", "")
+				// This is commented out due to the fact stated at
+				// https://commons.wikimedia.org/wiki/Commons:Regex#Junk_cleanup
+				// .replaceAll(caseInsensitive+"\\{\\{en *(?:\\| *1=)? *\\}\\} *(\\||\\}\\}|\\r|\\n)","$1")
+				;
+				textPart = cleanText;
+				// only minor cleanup per
+				// https://commons.wikimedia.org/wiki/Commons:Regex#Junk_cleanup
 			}
-			cleanText = text
-					.replaceAll(
-							caseInsensitive
-									+ "(<!--)? *\\{\\{ImageUpload\\|(full|basic)\\}\\} *(-->)? *\\n?",
-							"")
-					.replaceAll(
-							caseInsensitive
-									+ " *<!-- *Remove this line once you have added categories *--> *",
-							"")
-					.replaceAll(
-							caseInsensitive + " *<!-- *categories *--> *\\n?",
-							"").replaceAll("__ *NOTOC *__", "")
-			// This is commented out due to the fact stated at
-			// https://commons.wikimedia.org/wiki/Commons:Regex#Junk_cleanup
-			// .replaceAll(caseInsensitive+"\\{\\{en *(?:\\| *1=)? *\\}\\} *(\\||\\}\\}|\\r|\\n)","$1")
-			;
-			this.text = cleanText;
 			// only minor cleanup per
-			// https://commons.wikimedia.org/wiki/Commons:Regex#Junk_cleanup
-		}
-		// only minor cleanup per
-		// https://commons.wikimedia.org/wiki/Commons:Regex#Formatting
-		this.text = text.replaceAll("\\n{3,}", "\n\n");
-		cleanText = text
-				.replaceAll(
-						caseInsensitive
-								+ "\\[https?://([a-z0-9\\-]{2,3})\\.(?:(w)ikipedia|(wikt)ionary|wiki(n)ews|wiki(b)ooks|wiki(q)uote|wiki(s)ource|wiki(v)ersity|wiki(voy)age)\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
-						"[[$2$3$4$5$6$7$8$9:$1:$10|$11]]")
-				.replaceAll(
-						caseInsensitive
-								+ "\\[https?://(?:(m)eta|(incubator)|(quality))\\.wikimedia\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
-						"[[$1$2$3:$4|$5]]")
-				.replaceAll(
-						caseInsensitive
-								+ "\\[https?://commons\\.wikimedia\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
-						"[[:$1|$2]]");
-		if (!(text.equals(cleanText))) {
-			this.editSummary = editSummary
-					+ "[[Com:Regex#Links|Standardizing interwikilinks]]. ";
-			this.text = cleanText;
-		}
-		cleanText = text.replaceAll(
-				caseInsensitive
-						+ " *\\[\\[category *: *([^]]*?) *(\\|[^]]*)?\\]\\] *",
-				"[[Category:$1$2]]").replaceAll(
-				caseInsensitive
-						+ "\\[\\[category: *\\]\\](?:\\n( *\\[\\[category:))?",
-				"$1");
-		cleanText = multipleReplaceAll(cleanText, caseInsensitive
-				+ "\\[\\[category:([^]]+)\\]\\] *\\[\\[category:([^]]+)\\]\\]",
-				"[[Category:$1]]\n[[Category:$2]]");
-		cleanText = multipleReplaceAll(cleanText, caseInsensitive
-				+ "(\\[\\[category:)([^]]+\\]\\])(.*?)\\1\\2\\n?", "$1$2$3");
-		if (!(text.equals(cleanText))) {
-			this.editSummary = editSummary
-					+ "[[Com:Regex#Categories|Category-cleanup]]. ";
-			this.text = cleanText;
-		}
-		this.text = multipleReplaceAll(text, caseInsensitive
-				+ "(\\[\\[category:[^]]+\\]\\]\\n)\\n+(\\[\\[category:)",
-				"$1$2");
-		cleanText = text
-				.replaceAll(caseInsensitive + "</?br( )?(/)?\\\\?>", "<br$1$2>")
-				.replaceAll(
-						caseInsensitive
-								+ "(\\{\\{\\}\\}|\\[\\[\\]\\]|<gallery></gallery>|\\[\\[:?File *: *\\]\\]|)",
-						"");
-		if (!(text.equals(cleanText))) {
-			this.editSummary = editSummary
-					+ "[[Com:Regex#Formatting|Format-cleanup]]. ";
-			this.text = cleanText;
+			// https://commons.wikimedia.org/wiki/Commons:Regex#Formatting
+			textPart = textPart.replaceAll("\\n{3,}", "\n\n");
+			cleanText = textPart
+					.replaceAll(
+							caseInsensitive
+									+ "\\[https?://([a-z0-9\\-]{2,3})\\.(?:(w)ikipedia|(wikt)ionary|wiki(n)ews|wiki(b)ooks|wiki(q)uote|wiki(s)ource|wiki(v)ersity|wiki(voy)age)\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
+							"[[$2$3$4$5$6$7$8$9:$1:$10|$11]]")
+					.replaceAll(
+							caseInsensitive
+									+ "\\[https?://(?:(m)eta|(incubator)|(quality))\\.wikimedia\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
+							"[[$1$2$3:$4|$5]]")
+					.replaceAll(
+							caseInsensitive
+									+ "\\[https?://commons\\.wikimedia\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
+							"[[:$1|$2]]");
+			if (!(textPart.equals(cleanText))) {
+				this.editSummary = editSummary
+						+ "[[Com:Regex#Links|Standardizing interwikilinks]]. ";
+				textPart = cleanText;
+			}
+			cleanText = textPart
+					.replaceAll(
+							caseInsensitive
+									+ " *\\[\\[category *: *([^]]*?) *(\\|[^]]*)?\\]\\] *",
+							"[[Category:$1$2]]")
+					.replaceAll(
+							caseInsensitive
+									+ "\\[\\[category: *\\]\\](?:\\n( *\\[\\[category:))?",
+							"$1");
+			cleanText = multipleReplaceAll(
+					cleanText,
+					caseInsensitive
+							+ "\\[\\[category:([^]]+)\\]\\] *\\[\\[category:([^]]+)\\]\\]",
+					"[[Category:$1]]\n[[Category:$2]]");
+			cleanText = multipleReplaceAll(cleanText, caseInsensitive
+					+ "(\\[\\[category:)([^]]+\\]\\])(.*?)\\1\\2\\n?", "$1$2$3");
+			if (!(textPart.equals(cleanText))) {
+				this.editSummary = editSummary
+						+ "[[Com:Regex#Categories|Category-cleanup]]. ";
+				textPart = cleanText;
+			}
+			textPart = multipleReplaceAll(textPart, caseInsensitive
+					+ "(\\[\\[category:[^]]+\\]\\]\\n)\\n+(\\[\\[category:)",
+					"$1$2");
+			cleanText = textPart
+					.replaceAll(caseInsensitive + "</?br( )?(/)?\\\\?>",
+							"<br$1$2>")
+					.replaceAll(
+							caseInsensitive
+									+ "(\\{\\{\\}\\}|\\[\\[\\]\\]|<gallery></gallery>|\\[\\[:?File *: *\\]\\]|)",
+							"");
+			if (!(textPart.equals(cleanText))) {
+				this.editSummary = editSummary
+						+ "[[Com:Regex#Formatting|Format-cleanup]]. ";
+				textPart = cleanText;
+			}
+			text[i] = textPart;
 		}
 	}
 
@@ -347,16 +377,13 @@ public class WikiPage {
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
 
-		// Removes the categories from the text while ignoring the content of
-		// comments (between "<!--" and "-->")
-		String text = getText();
+		// Removes the categories from the text
 		for (Category z : parentCategories)
-			text = replaceAllIgnoreComments(text, "(?iu)" + "\\[\\[Category:"
-					+ "\\Q" + z.getName() + "\\E" + "(\\|[^}#\\]\\[{><]*)?"
-					+ "\\]\\]", "");
-
-		this.setText((text + cleanCategoryWikitext).replaceAll("\\n{3,}",
-				"\n\n"));
+			replaceAllInPagetext(
+					"(?iu)" + "\\[\\[Category:" + "\\Q" + z.getName() + "\\E"
+							+ "(\\|[^}#\\]\\[{><]*)?" + "\\]\\]", "");
+		this.setPlainText((getPlainText() + cleanCategoryWikitext).replaceAll(
+				"\\n{3,}", "\n\n"));
 		this.parents = cleanParentCategories;
 		int numberOfRemovedCategories = parentCategories.length
 				- cleanParentCategories.length;
@@ -391,7 +418,7 @@ public class WikiPage {
 		int revokedCounter = 0;
 		String revokedFlag = "e7db5f37c0a2bc9b525d8ab86ea9ed12";
 		// calculate the number of redundant categories
-		// TODO: reduce to one for loop...
+		// TODO: reduce to one for loop if possible?!
 		for (int i = 0; i < parentCategories.length; i++) {
 			cleanCategories[i] = new Category(parentCategories[i].getName(),
 					parentCategories[i].getSortkey()); // clone
@@ -434,43 +461,109 @@ public class WikiPage {
 
 	/**
 	 * Replace all matches of the regex with the replacement string in the text
-	 * string
+	 * string. Ignore all pre, nowiki or comments
 	 * 
-	 * @param text
-	 *            The text to be altered
 	 * @param regex
 	 *            The regex pattern
 	 * @param replacement
 	 *            All matches get substituted by this
 	 * @return
 	 */
-	public static String replaceAllIgnoreComments(String text, String regex,
-			String replacement) {
+	public void replaceAllInPagetext(String regex, String replacement) {
+		for (int p = 0; p < text.length; ++p) {
+			if (text[p].equals("true") || text[p].equals("<code>")) {
+				++p;
+				text[p] = text[p].replaceAll(regex, replacement);
+			} else
+				++p;
+		}
+	}
+
+	/**
+	 * Returns a List with 2*n elements where n in {1, 2, 3, ... }. The elements
+	 * with odd "indexes" indicate whether the String at the next even "index"
+	 * should be edited or not. (Has "true" if the next element can be edited
+	 * and any prefix if the next element can not be edited)
+	 * 
+	 * @param text
+	 *            The text to be tokenized
+	 * @return A string array with the text in the elements and additional
+	 *         indicators before each text element
+	 */
+	private static LinkedList<String> tokenizeWikitext(String text) {
+		LinkedList<String> list = new LinkedList<String>();
 		String commentPre = "<!--";
 		String commentSuf = "-->";
-		String split[] = text.split(commentPre, 2);
-		// tackle stuff in front of comment -> Just replace
-		text = split[0].replaceAll(regex, replacement);
-		if (split.length == 2) {
-			// if comment actually found
-			// search for the end of the comment
-			String split2[] = split[1].split(commentSuf, 2);
-			if (split2.length == 2) {
-				// if end of comment actually found
-				// keep comment and only replace stuff after the end of the
-				// comment recursively
-				return text
-						+ commentPre
-						+ split2[0]
-						+ commentSuf
-						+ replaceAllIgnoreComments(split2[1], regex,
-								replacement);
-			}
-			// no comment found -> Just replace
-			return text + commentPre + split[1].replaceAll(regex, replacement);
+		String nowikiPre = "<nowiki>";
+		String nowikiSuf = "</nowiki>";
+		String codePre = "<code>";
+		String codeSuf = "</code>";
+		String prePre = "<pre>";
+		String preSuf = "</pre>";
+		// calculate first occurrence of comment, nowiki, pre, or code
+		int firstComment = text.indexOf(commentPre);
+		if (firstComment < 0)
+			firstComment = text.length();
+		int firstNowiki = text.indexOf(nowikiPre);
+		if (firstNowiki < 0)
+			firstNowiki = text.length();
+		int firstCode = text.indexOf(codePre);
+		if (firstCode < 0)
+			firstCode = text.length();
+		int firstPre = text.indexOf(prePre);
+		if (firstPre < 0)
+			firstPre = text.length();
 
-		}
-		return text;
+		String pre;
+		String suf;
+		do {
+			// decide which one is the very first
+			int first = Math.min(firstComment,
+					Math.min(firstNowiki, Math.min(firstCode, firstPre)));
+			if (first == text.length()) {
+				list.add("true");
+				list.add(text);
+				return list;
+			}
+			if (firstComment == first) {
+				pre = commentPre;
+				suf = commentSuf;
+				break;
+			}
+			if (firstNowiki == first) {
+				pre = nowikiPre;
+				suf = nowikiSuf;
+				break;
+			}
+			if (firstCode == first) {
+				pre = codePre;
+				suf = codeSuf;
+				break;
+			}
+			if (firstPre == first) {
+				pre = prePre;
+				suf = preSuf;
+				break;
+			}
+			{// TODO remove after testing
+				pre = "fatal error";
+				suf = pre;
+				System.exit(-1);
+			}
+		} while (false);
+		String[] split = text.split(pre, 2);
+		list.add("true");
+		list.add(split[0]);
+		String[] split2 = split[1].split(suf, 2);
+		list.add(pre);// add pre instead of false!
+		if (split2.length == 2) {
+			// suffix found
+			list.add(pre + split2[0] + suf);
+			list.addAll(tokenizeWikitext(split2[1]));
+		} else
+			// suffix not found
+			list.add(pre + split[1]);
+		return list;
 	}
 
 	/**
@@ -519,7 +612,7 @@ public class WikiPage {
 		if (isCleanedup == false)
 			this.cleanupWikitext();
 		if (parents == null) {
-			String[] parentCats = parentCatsFromPagetext(wiki, text, true);
+			String[] parentCats = getParentCatsFromPagetext(true);
 			// wipe dupes
 			Set<String> names = new HashSet<String>();
 			List<Category> catList = new ArrayList<Category>();
@@ -561,7 +654,8 @@ public class WikiPage {
 	}
 
 	/**
-	 * Returns the parent categories which can be inferred from the given text
+	 * Returns the parent categories which can be inferred from the text. (May
+	 * include duplicates)
 	 * 
 	 * @param wiki
 	 *            The wiki to connect to
@@ -572,12 +666,11 @@ public class WikiPage {
 	 * @return A string array containing all category names (no "Category:"
 	 *         prefix) and (if desired) the sortkey separated by "|"
 	 */
-	public static String[] parentCatsFromPagetext(Wiki wiki, String text,
-			boolean sortkey) {
+	public String[] getParentCatsFromPagetext(boolean sortkey) {
 		Matcher m = Pattern
 				.compile(
 						"\\[\\[[cC]ategory:[^\\|#\\]\\[}{><]+(\\|[^#\\]\\[}{><]*)?\\]\\]")
-				.matcher(wipeComments(text));
+				.matcher(this.getPlainTextNoComments());
 		{// TODO Remove this after debug!
 			// The above match (if any) should also match the following regex to
 			// be valid
@@ -605,29 +698,19 @@ public class WikiPage {
 	}
 
 	/**
-	 * Return the text with all comments removed
+	 * Return the pagetext with all comments, pre and nowiki removed
 	 * 
-	 * @param text
-	 *            The text to be altered
 	 * @return The altered text which lacks all comments
 	 */
-	public static String wipeComments(String text) {
-		String commentPre = "<!--";
-		String commentSuf = "-->";
-		String[] split = text.split(commentPre, 2);
-		// Just copy the text in front of the comment
-		text = split[0];
-		if (split.length == 2) { // if comment actually found
-			// search for the end of the comment
-			String split2[] = split[1].split(commentSuf, 2);
-			if (split2.length == 2) { // if end of comment actually found
-				// delete comment and only keep stuff after the end of the
-				// comment. (Of course after recursively removing the
-				// comments from this one as well
-				text = text + wipeComments(split2[1]);
-			}
+	public String getPlainTextNoComments() {
+		String returnString = "";
+		for (int u = 0; u < text.length; ++u) {
+			if (text[u].equals("true") || text[u].equals("<code>"))
+				returnString += text[++u];
+			else
+				++u;
 		}
-		return text;
+		return returnString;
 	}
 
 	/**
@@ -640,7 +723,7 @@ public class WikiPage {
 	public void writeText() throws LoginException, IOException {
 		if (this.getEditSummary().length() == 0)
 			return;
-		wiki.edit(this.getName(), this.getText(),
+		wiki.edit(this.getName(), this.getPlainText(),
 				"Bot: " + this.getEditSummary());
 		this.editSummary = "";
 		this.isCleanedup = false;
