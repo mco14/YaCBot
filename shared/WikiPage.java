@@ -57,7 +57,7 @@ public class WikiPage {
 	 */
 	public String getPlainText() {
 		String plainText = "";
-		for (int t = 0; t < text.length; t += 2)
+		for (int t = 1; t < text.length; t += 2)
 			plainText += text[t];
 		return plainText;
 	}
@@ -157,8 +157,10 @@ public class WikiPage {
 								+ "^ *== *(.*?) *== *[\\r\\n]+ *== *\\1 *== *$",
 						"== $1 ==");
 				if (!(textPart.equals(cleanText))) {
-					this.editSummary = editSummary
-							+ "[[Com:IntRegex|Internationalisation]]. ";
+					if (!editSummary
+							.contains("[[Com:IntRegex|Internationalisation]]. "))
+						this.editSummary = editSummary
+								+ "[[Com:IntRegex|Internationalisation]]. ";
 					textPart = cleanText;
 				}
 				cleanText = textPart
@@ -175,8 +177,10 @@ public class WikiPage {
 										+ "(\\| *other[_ ]versions *=) *(?:<i>)?(?:-|no|none?(?: known)?)\\.?(?:</i>)? *(\\||\\}\\}|\\r|\\n)",
 								"$1$2");
 				if (!(textPart.equals(cleanText))) {
-					this.editSummary = editSummary
-							+ "Removing redundant information. ";
+					if (!editSummary
+							.contains("Removing redundant information. "))
+						this.editSummary = editSummary
+								+ "Removing redundant information. ";
 					// per
 					// https://commons.wikimedia.org/wiki/Commons:IntRegex#.7B.7BInformation.7D.7D_fields
 					textPart = cleanText;
@@ -221,8 +225,10 @@ public class WikiPage {
 										+ "(\\| *date *= *)(?:\\{\\{date\\|)?([0-9]{4})[|-](0[1-9]|1[012])[|-](0[1-9]|1[0-9]|2[0-9]|3[01])(?:\\}\\})? *\\((original upload date|according to EXIF data)\\) *(\\||\\}\\}|\\r|\\n)",
 								"$1{{$5|$2-$3-$4}}$6");
 				if (!(textPart.equals(cleanText))) {
-					this.editSummary = editSummary
-							+ "[[Com:Regex#Dates|Standardizing dates]]. ";
+					if (!editSummary
+							.contains("[[Com:Regex#Dates|Standardizing dates]]. "))
+						this.editSummary = editSummary
+								+ "[[Com:Regex#Dates|Standardizing dates]]. ";
 					textPart = cleanText;
 				}
 				cleanText = textPart.replaceAll("__ *NOTOC *__", "")
@@ -251,8 +257,10 @@ public class WikiPage {
 									+ "\\[https?://commons\\.wikimedia\\.(?:com|net|org)/wiki/([^\\]\\[{|}\\s\"]*) +([^\\n\\]]+)\\]",
 							"[[:$1|$2]]");
 			if (!(textPart.equals(cleanText))) {
-				this.editSummary = editSummary
-						+ "[[Com:Regex#Links|Standardizing interwikilinks]]. ";
+				if (!editSummary
+						.contains("[[Com:Regex#Links|Standardizing interwikilinks]]. "))
+					this.editSummary = editSummary
+							+ "[[Com:Regex#Links|Standardizing interwikilinks]]. ";
 				textPart = cleanText;
 			}
 			cleanText = textPart
@@ -272,8 +280,10 @@ public class WikiPage {
 			cleanText = multipleReplaceAll(cleanText, caseInsensitive
 					+ "(\\[\\[category:)([^]]+\\]\\])(.*?)\\1\\2\\n?", "$1$2$3");
 			if (!(textPart.equals(cleanText))) {
-				this.editSummary = editSummary
-						+ "[[Com:Regex#Categories|Category-cleanup]]. ";
+				if (!editSummary
+						.contains("[[Com:Regex#Categories|Category-cleanup]]. "))
+					this.editSummary = editSummary
+							+ "[[Com:Regex#Categories|Category-cleanup]]. ";
 				textPart = cleanText;
 			}
 			textPart = multipleReplaceAll(textPart, caseInsensitive
@@ -287,8 +297,10 @@ public class WikiPage {
 									+ "(\\{\\{\\}\\}|\\[\\[\\]\\]|<gallery></gallery>|\\[\\[:?File *: *\\]\\]|)",
 							"");
 			if (!(textPart.equals(cleanText))) {
-				this.editSummary = editSummary
-						+ "[[Com:Regex#Formatting|Format-cleanup]]. ";
+				if (!editSummary
+						.contains("[[Com:Regex#Formatting|Format-cleanup]]. "))
+					this.editSummary = editSummary
+							+ "[[Com:Regex#Formatting|Format-cleanup]]. ";
 				textPart = cleanText;
 			}
 			text[i] = textPart;
@@ -365,7 +377,7 @@ public class WikiPage {
 		String[] allGrandparentCategories;
 		{
 			Set<String> listSet = all_grand_parentCats(wiki,
-					parentCats(wiki, name, false, ignoreHidden), depth,
+					wiki.getCategories(name, false, ignoreHidden), depth,
 					ignoreHidden);
 			allGrandparentCategories = listSet.toArray(new String[listSet
 					.size()]);
@@ -424,7 +436,7 @@ public class WikiPage {
 					parentCategories[i].getSortkey()); // clone
 			for (int r = 0; r < grandparentStrings.length; r++) {
 				if ((parentCategories[i].getName()
-						.equals(grandparentStrings[r]))) {
+						.equals(grandparentStrings[r].split(":", 2)[1]))) {
 					removedCatsWikitext = removedCatsWikitext + "[[Category:"
 							+ parentCategories[i].getName() + "]] ";
 					revokedCounter++;
@@ -471,7 +483,7 @@ public class WikiPage {
 	 */
 	public void replaceAllInPagetext(String regex, String replacement) {
 		for (int p = 0; p < text.length; ++p) {
-			if (text[p].equals("true") || text[p].equals("<code>")) {
+			if (text[p].equals("true"))/* || text[p].equals("<code>")) */{
 				++p;
 				text[p] = text[p].replaceAll(regex, replacement);
 			} else
@@ -483,11 +495,12 @@ public class WikiPage {
 	 * Returns a List with 2*n elements where n in {1, 2, 3, ... }. The elements
 	 * with odd "indexes" indicate whether the String at the next even "index"
 	 * should be edited or not. (Has "true" if the next element can be edited
-	 * and any prefix if the next element can not be edited)
+	 * and the prefix if the next element should not be edited) [prefix may be
+	 * pre (in <>), nowiki (in <>) or <!--]
 	 * 
 	 * @param text
 	 *            The text to be tokenized
-	 * @return A string array with the text in the elements and additional
+	 * @return A string List with the text in the elements and additional
 	 *         indicators before each text element
 	 */
 	private static LinkedList<String> tokenizeWikitext(String text) {
@@ -496,20 +509,22 @@ public class WikiPage {
 		String commentSuf = "-->";
 		String nowikiPre = "<nowiki>";
 		String nowikiSuf = "</nowiki>";
-		String codePre = "<code>";
-		String codeSuf = "</code>";
+		// May cause problems in other methods when
+		// <code><nowiki>sth.</nowiki></code>
+		// String codePre = "<code>";
+		// String codeSuf = "</code>";
 		String prePre = "<pre>";
 		String preSuf = "</pre>";
-		// calculate first occurrence of comment, nowiki, pre, or code
+		// calculate first occurrence of comment, nowiki or pre
 		int firstComment = text.indexOf(commentPre);
 		if (firstComment < 0)
 			firstComment = text.length();
 		int firstNowiki = text.indexOf(nowikiPre);
 		if (firstNowiki < 0)
 			firstNowiki = text.length();
-		int firstCode = text.indexOf(codePre);
-		if (firstCode < 0)
-			firstCode = text.length();
+		// int firstCode = text.indexOf(codePre);
+		// if (firstCode < 0)
+		// firstCode = text.length();
 		int firstPre = text.indexOf(prePre);
 		if (firstPre < 0)
 			firstPre = text.length();
@@ -519,7 +534,7 @@ public class WikiPage {
 		do {
 			// decide which one is the very first
 			int first = Math.min(firstComment,
-					Math.min(firstNowiki, Math.min(firstCode, firstPre)));
+					Math.min(firstNowiki, Math.min(firstPre, firstPre))); // firstCode
 			if (first == text.length()) {
 				list.add("true");
 				list.add(text);
@@ -535,11 +550,11 @@ public class WikiPage {
 				suf = nowikiSuf;
 				break;
 			}
-			if (firstCode == first) {
-				pre = codePre;
-				suf = codeSuf;
-				break;
-			}
+			// if (firstCode == first) {
+			// pre = codePre;
+			// suf = codeSuf;
+			// break;
+			// }
 			if (firstPre == first) {
 				pre = prePre;
 				suf = preSuf;
@@ -584,7 +599,7 @@ public class WikiPage {
 	 *         Category name, no prefix, no sortkey, no duplicate entries)
 	 * @throws IOException
 	 */
-	private static Set<String> all_grand_parentCats(Wiki wiki,
+	public static Set<String> all_grand_parentCats(Wiki wiki,
 			String[] categories, int depth, boolean ignoreHidden)
 			throws IOException {
 		if (depth <= 0) {
@@ -593,8 +608,8 @@ public class WikiPage {
 		}
 		Set<String> subSet = new LinkedHashSet<String>();
 		for (String cat : categories) {
-			String[] tempGrandparent = WikiPage.parentCats(wiki, "Category:"
-					+ cat, false, ignoreHidden);
+			String[] tempGrandparent = wiki.getCategories(cat, false,
+					ignoreHidden);
 			subSet.addAll(all_grand_parentCats(wiki, tempGrandparent,
 					depth - 1, ignoreHidden));
 			subSet.addAll(Arrays.asList(tempGrandparent));
@@ -617,8 +632,9 @@ public class WikiPage {
 			Set<String> names = new HashSet<String>();
 			List<Category> catList = new ArrayList<Category>();
 			for (String name : parentCats) {
-				if (names.add(name)) {
-					String splitString[] = name.split("\\|", 2);
+				String splitString[] = name.split("\\|", 2);
+				if (names.add(splitString[0])
+						&& (!splitString[0].matches("^[ ]*$"))) {
 					catList.add(new Category(splitString[0],
 							(splitString.length == 2) ? splitString[1] : null));
 				}
@@ -626,31 +642,6 @@ public class WikiPage {
 			this.parents = catList.toArray(new Category[catList.size()]);
 		}
 		return parents;
-	}
-
-	/**
-	 * Returns the parent categories via the API
-	 * 
-	 * @param wiki
-	 *            The wiki to connect to
-	 * @param title
-	 *            The title of the page to be evaluated
-	 * @param sortkey
-	 *            If the sortkey should be included into the string array
-	 * @param ignoreHidden
-	 *            If hidden categories should be ignored during the search
-	 * @return A string array containing all categories and (if desired) the
-	 *         sortkey separated by "|". (The "Category:" prefix string is
-	 *         wiped!)
-	 * @throws IOException
-	 */
-	private static String[] parentCats(Wiki wiki, String title,
-			boolean sortkey, boolean ignoreHidden) throws IOException {
-		String[] temp = wiki.getCategories(title, sortkey, ignoreHidden);
-		for (int t = 0; t < temp.length; t++)
-			// remove the "Category:" prefix string
-			temp[t] = temp[t].split(":", 2)[1];
-		return temp;
 	}
 
 	/**
@@ -705,7 +696,7 @@ public class WikiPage {
 	public String getPlainTextNoComments() {
 		String returnString = "";
 		for (int u = 0; u < text.length; ++u) {
-			if (text[u].equals("true") || text[u].equals("<code>"))
+			if (text[u].equals("true"))// || text[u].equals("<code>"))
 				returnString += text[++u];
 			else
 				++u;

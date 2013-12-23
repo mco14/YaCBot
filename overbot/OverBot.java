@@ -11,7 +11,7 @@ public class OverBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.22");
+		System.out.println("v13.12.23");
 
 		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {
@@ -35,10 +35,10 @@ public class OverBot {
 			// Minimum time between edits in ms
 			commons.setThrottle(5 * 1000);
 			// Pause bot if lag is greater than ... in s
-			commons.setMaxLag(2);
+			commons.setMaxLag(3);
 			commons.setMarkMinor(true);
 			commons.setMarkBot(false);
-			cleanup(commons, args[1], args[0].equals("null") ? "" : args[0]);
+			cleanup(commons, args[1]);
 		} catch (LoginException | IOException e) {
 			e.printStackTrace();
 		}
@@ -54,7 +54,7 @@ public class OverBot {
 	 * @throws IOException
 	 * @throws LoginException
 	 */
-	private static void cleanup(Wiki wiki, String continueKey, String user)
+	private static void cleanup(Wiki wiki, String continueKey)
 			throws IOException, LoginException {
 
 		Object[] nextBatchObjects;

@@ -1435,6 +1435,23 @@ public class Wiki implements Serializable
         log(Level.INFO, "getPageText", "Successfully retrieved text of " + title);
         return temp;
     }
+    
+    /**
+     * Gets the number of global usages for a file.
+     * 
+     * @param title the title of the page
+     * @return the number of global usages
+     */
+    public int getGlobalUsageCount(String title)
+    {
+    	if(!title.toUpperCase().startsWith("FILE:"))
+    		throw new UnsupportedOperationException("Cannot retrieve Globalusage for pages other than File pages!");
+    	String url = query + "&prop=globalusage&format=xml&gulimit=5000&titles=" + title;
+    	int count = 0;
+    	for(int i=url.indexOf("<gu");i>0;i=url.indexOf("<gu", i+1))
+    		++count;
+    	return count;
+    }
 
     /**
      *  Gets the text of a specific section. Useful for section editing.
@@ -1893,7 +1910,7 @@ public class Wiki implements Serializable
     /**
      * Gets the list of categories a particular page is in. Ignores hidden
      * categories if ignoreHidden is true. Also includes the sortkey of a
-     * category if sortkey is true. The sortkey would then be prepended to
+     * category if sortkey is true. The sortkey would then be appended to
      * the element of the returned string array (separated by "|").
      * Capped at <tt>max</tt> number of categories, there's no reason why
      * there should be more than that.
@@ -1920,10 +1937,10 @@ public class Wiki implements Serializable
         	b = line.indexOf("<cl ", a+1);
         	if(ignoreHidden && line.substring(a, (b>0)? b : line.length()).contains("hidden"))
         		continue;
-        	String sortkeyString = "";
-        	if(sortkey)
-        		sortkeyString = decode(parseAttribute(line, "sortkeyprefix", a));
-            categories.add(decode(parseAttribute(line, "title", a)) + ( (sortkeyString.length() == 0)? ("") : "|" + sortkeyString));
+        	String category = decode(parseAttribute(line, "title", a));
+            if (sortkey)
+                category += ("|" + parseAttribute(line, "sortkeyprefix", a));
+            categories.add(category);
         }
         int temp = categories.size();
         log(Level.INFO, "getCategories", "Successfully retrieved categories of " + title + " (" + temp + " categories)");
