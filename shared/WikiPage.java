@@ -21,6 +21,7 @@ public class WikiPage {
 	private boolean isCleanedup;
 	// editSummary stays empty if only minor cleanups were made
 	private String editSummary;
+	private boolean duplicateCategoryCleanup;
 
 	/**
 	 * Creates a new object of the class WikiPage. It is possible to clean up
@@ -202,7 +203,6 @@ public class WikiPage {
 								caseInsensitive
 										+ "(\\| *date *= *)(?:created|made|taken)? *(1[3-9]|2[0-9]|3[01])(-| |/|\\.|)(0[1-9]|1[0-2])\\3(2[0-9]{3}|1[89][0-9]{2})(\\||\\}\\}|\\r|\\n)",
 								"$1$5-$4-$2$6")
-
 						.replaceAll(
 								caseInsensitive
 										+ "(\\| *date *= *)(?:created|made|taken)? *\\{\\{date\\|([0-9]{4})\\|(0[1-9]|1[012])\\|(0?[1-9]|1[0-9]|2[0-9]|3[01])\\}\\}(\\||\\}\\}|\\r|\\n)",
@@ -211,7 +211,6 @@ public class WikiPage {
 								caseInsensitive
 										+ "(\\| *(?:date|year) *= *)(\\d\\d?)(?:st|nd|rd|th) *century *(\\||\\}\\}|\\r|\\n)",
 								"$1{{other date|century|$2}}$3")
-
 						.replaceAll(
 								caseInsensitive
 										+ "(\\| *(?:date|year) *= *)(?:cir)?ca?\\.? *(\\d{4}) *(\\||\\}\\}|\\r|\\n)",
@@ -383,8 +382,8 @@ public class WikiPage {
 					.size()]);
 		}
 		Object[] cleanedCatsAndText = returnCleanedCatsAndText(
-				!editSummary.isEmpty(), parentCategories,
-				allGrandparentCategories);
+				!editSummary.isEmpty() || duplicateCategoryCleanup,
+				parentCategories, allGrandparentCategories);
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
@@ -403,7 +402,11 @@ public class WikiPage {
 			this.editSummary = "Removed "
 					+ numberOfRemovedCategories
 					+ " categories which are [[COM:OVERCAT|parent]] of already present categories: "
-					+ removedCategoriesWikitext + ". " + this.getEditSummary();
+					+ removedCategoriesWikitext + ". " + getEditSummary();
+		else if (duplicateCategoryCleanup)
+			// At least clean up duplicate categories, if no OVERCAT found
+			this.editSummary = getEditSummary()
+					+ "Removed duplicate categories. ";
 	}
 
 	/**
@@ -435,8 +438,8 @@ public class WikiPage {
 			cleanCategories[i] = new Category(parentCategories[i].getName(),
 					parentCategories[i].getSortkey()); // clone
 			for (int r = 0; r < grandparentStrings.length; r++) {
-				if ((parentCategories[i].getName()
-						.equals(grandparentStrings[r].split(":", 2)[1]))) {
+				if ((parentCategories[i].getName().equals(grandparentStrings[r]
+						.split(":", 2)[1]))) {
 					removedCatsWikitext = removedCatsWikitext + "[[Category:"
 							+ parentCategories[i].getName() + "]] ";
 					revokedCounter++;
@@ -445,8 +448,7 @@ public class WikiPage {
 				}
 			}
 		}
-		// create a new array for the clean categories taking into account the
-		// number of redundant categories
+		// create a new array for the clean categories if needed
 		if (cleanupAnyway || revokedCounter > 0) {
 			Category[] cleanCategoriesReturn = new Category[cleanCategories.length
 					- revokedCounter];
@@ -464,8 +466,8 @@ public class WikiPage {
 			if (revokedCounter > 0) {
 				removedCatsWikitext = removedCatsWikitext.substring(0,
 						removedCatsWikitext.length() - 1);
-				cleanCategories = cleanCategoriesReturn;
 			}
+			cleanCategories = cleanCategoriesReturn;
 		}
 		return new Object[] { cleanCategories, removedCatsWikitext,
 				categoryWikitext };
@@ -637,7 +639,8 @@ public class WikiPage {
 						&& (!splitString[0].matches("^[ ]*$"))) {
 					catList.add(new Category(splitString[0],
 							(splitString.length == 2) ? splitString[1] : null));
-				}
+				} else
+					this.duplicateCategoryCleanup = true;
 			}
 			this.parents = catList.toArray(new Category[catList.size()]);
 		}
