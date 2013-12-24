@@ -22,7 +22,9 @@ package shared;
 
 import java.io.*;
 import java.net.*;
+import java.text.DateFormat;
 import java.text.Normalizer;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.*;
 import java.util.zip.GZIPInputStream;
@@ -4300,6 +4302,52 @@ public class Wiki implements Serializable
         int size = members.size();
         log(Level.INFO, "Successfully retrieved next files (" + size + " items)", "listAllFiles");
         return new Object[] {continueKey , members.toArray(new String[size])};
+	}
+	
+	/**
+	 * Gets the recent changes (new file uploads) for the last days.
+	 * For commons we have ~200 files per day
+	 * @param daysBegin should be smaller than 30
+	 * @param daysEnd should be smaller than daysBegin and equal or greater than 0
+	 * @return
+	 * @throws IOException 
+	 */
+	public String[] listRecentUploads(long daysBegin , long daysEnd) throws IOException
+	{
+		int amount = 200;
+		//&rccontinue=2013-11-27T19%3A47%3A10Z%7C111748991
+		daysBegin = Math.min(Math.max(daysBegin, 1),29);
+		daysEnd = Math.min(Math.max(0, daysEnd), daysBegin);
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+		String rcStart = (dateFormat.format(new Date(System.currentTimeMillis() - daysBegin*24*60*60*1000)));
+		String rcEnd = (dateFormat.format(new Date(System.currentTimeMillis() - daysEnd*24*60*60*1000)));
+		String continueKey = "";
+		ArrayList<String> members = new ArrayList<String>();
+		do{
+			StringBuilder url = new StringBuilder(query);
+			url.append("list=recentchanges");
+			if(continueKey!=null&&continueKey.length()==30)
+				url.append("&rccontinue="+URLEncoder.encode(continueKey, "UTF-8"));
+			//else
+			{
+				url.append("&rcstart="+rcStart);
+				url.append("&rcend="+rcEnd);
+			}
+			url.append("&rcdir=newer&rcnamespace=6&rclimit="+amount+"&rctype=new");
+			String line = fetch(url.toString(), "listRecentUploads");
+
+
+			// xml form: <rc type="new" ns="6" title="File:Bozena (Bo) Intrator.JPG" ... />
+			for (int x = line.indexOf("<rc "); x > 0; x = line.indexOf("<rc ", ++x))
+				members.add(decode(parseAttribute(line, "title", x)));
+			if (line.contains("<query-continue>"))
+				continueKey = decode(parseAttribute(line, "rccontinue", 0));
+			else
+				continueKey = "";
+		}while(!continueKey.isEmpty());
+		int size = members.size();
+		log(Level.INFO, "Successfully retrieved files (" + size + " items)", "listRecentUploads");
+		return  members.toArray(new String[size]);
 	}
 
     /**
