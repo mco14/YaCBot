@@ -4305,8 +4305,8 @@ public class Wiki implements Serializable
 	}
 	
 	/**
-	 * Gets the recent changes (new file uploads) for the last days.
-	 * For commons we have ~200 files per day
+	 * Gets the recent changes (any log action) for the last days for files (ns=6).
+	 * For commons we have 10000+ files per day. (May include deleted files)
 	 * @param daysBegin should be smaller than 30
 	 * @param daysEnd should be smaller than daysBegin and equal or greater than 0
 	 * @return
@@ -4333,7 +4333,8 @@ public class Wiki implements Serializable
 				url.append("&rcstart="+rcStart);
 				url.append("&rcend="+rcEnd);
 			}
-			url.append("&rcdir=newer&rcnamespace=6&rclimit="+amount+"&rctype=new");
+			//fun fact: uploaded files are not new files. Thus we do not use rctype=new but rctype=log !
+			url.append("&rcdir=newer&rcnamespace=6&rclimit="+amount+"&rctype=log");
 			String line = fetch(url.toString(), "listRecentUploads");
 
 

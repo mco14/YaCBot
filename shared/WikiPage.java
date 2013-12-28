@@ -42,6 +42,9 @@ public class WikiPage {
 		this.editSummary = "";
 	}
 
+	public WikiPage() {
+	}
+
 	public String getEditSummary() {
 		return editSummary;
 	}
@@ -106,7 +109,7 @@ public class WikiPage {
 								"== {{int:license-header}} ==")
 						.replaceAll(
 								caseInsensitiveMultiline
-										+ "^== *(original upload (log|history)|file history|ursprüngliche bild-versionen) *==",
+										+ "^== *(original upload ?(log|history)|file ?history|ursprüngliche bild-versionen) *==",
 								"== {{original upload log}} ==")
 						.replaceAll(
 								caseInsensitive
@@ -381,32 +384,60 @@ public class WikiPage {
 			allGrandparentCategories = listSet.toArray(new String[listSet
 					.size()]);
 		}
-		Object[] cleanedCatsAndText = returnCleanedCatsAndText(
-				!editSummary.isEmpty() || duplicateCategoryCleanup,
+		boolean cleanupAnyway = !editSummary.isEmpty()
+				|| duplicateCategoryCleanup;
+		Object[] cleanedCatsAndText = returnCleanedCatsAndText(cleanupAnyway,
 				parentCategories, allGrandparentCategories);
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
 
-		// Removes the categories from the text
-		for (Category z : parentCategories)
-			replaceAllInPagetext(
-					"(?iu)" + "\\[\\[Category:" + "\\Q" + z.getName() + "\\E"
-							+ "(\\|[^}#\\]\\[{><]*)?" + "\\]\\]", "");
-		this.setPlainText((getPlainText() + cleanCategoryWikitext).replaceAll(
-				"\\n{3,}", "\n\n"));
-		this.parents = cleanParentCategories;
 		int numberOfRemovedCategories = parentCategories.length
 				- cleanParentCategories.length;
-		if (numberOfRemovedCategories > 0)
-			this.editSummary = "Removed "
-					+ numberOfRemovedCategories
-					+ " categories which are [[COM:OVERCAT|parent]] of already present categories: "
-					+ removedCategoriesWikitext + ". " + getEditSummary();
-		else if (duplicateCategoryCleanup)
-			// At least clean up duplicate categories, if no OVERCAT found
-			this.editSummary = getEditSummary()
-					+ "Removed duplicate categories. ";
+		if (cleanupAnyway || numberOfRemovedCategories > 1) {
+			// Removes the categories from the text
+			for (Category z : parentCategories)
+				replaceAllInPagetext(
+						"(?iu)" + "\\[\\[Category:" + "\\Q" + z.getName()
+								+ "\\E" + "(\\|[^}#\\]\\[{><]*)?" + "\\]\\]",
+						"");
+			this.setPlainText((getPlainText() + cleanCategoryWikitext)
+					.replaceAll("\\n{3,}", "\n\n"));
+			this.parents = cleanParentCategories;
+			if (numberOfRemovedCategories > 0)
+				this.editSummary = "Removed "
+						+ numberOfRemovedCategories
+						+ " categories which are [[COM:OVERCAT|parent]] of already present categories: "
+						+ removedCategoriesWikitext + ". " + getEditSummary();
+			else if (duplicateCategoryCleanup)
+				// At least clean up duplicate categories, if no OVERCAT found
+				this.editSummary = getEditSummary()
+						+ "Removed duplicate categories. ";
+		}
+		cleanupUndercat();
+	}
+
+	/**
+	 * @throws IOException
+	 * 
+	 */
+	public void cleanupUndercat() throws IOException {
+		// TODO fetch request may already been done
+		// -> save them for later use and use them now!
+		int numberOfAllCategories = wiki.getCategories(this.getName(), false,
+				false).length;
+		int numberOfAllNotHiddenCategories = wiki.getCategories(this.getName(),
+				false, true).length;
+		if (numberOfAllCategories > 0) {
+			// Files with a valid license must have at least one hidden category
+			if (numberOfAllNotHiddenCategories == 0) {
+				this.setPlainText(this.getPlainText() + "\n{{subst:unc}}");
+				this.editSummary = getEditSummary()
+						+ "Marked as [[CAT:UNCAT|uncategorized]]. ";
+			}
+		} else {
+			// TODO mark file with missing license?
+		}
 	}
 
 	/**
@@ -518,16 +549,16 @@ public class WikiPage {
 		String prePre = "<pre>";
 		String preSuf = "</pre>";
 		// calculate first occurrence of comment, nowiki or pre
-		int firstComment = text.indexOf(commentPre);
+		int firstComment = text.toLowerCase().indexOf(commentPre);
 		if (firstComment < 0)
 			firstComment = text.length();
-		int firstNowiki = text.indexOf(nowikiPre);
+		int firstNowiki = text.toLowerCase().indexOf(nowikiPre);
 		if (firstNowiki < 0)
 			firstNowiki = text.length();
-		// int firstCode = text.indexOf(codePre);
+		// int firstCode = text.toLowerCase().indexOf(codePre);
 		// if (firstCode < 0)
 		// firstCode = text.length();
-		int firstPre = text.indexOf(prePre);
+		int firstPre = text.toLowerCase().indexOf(prePre);
 		if (firstPre < 0)
 			firstPre = text.length();
 
@@ -568,10 +599,10 @@ public class WikiPage {
 				System.exit(-1);
 			}
 		} while (false);
-		String[] split = text.split(pre, 2);
+		String[] split = text.split("(?i)" + pre, 2);
 		list.add("true");
 		list.add(split[0]);
-		String[] split2 = split[1].split(suf, 2);
+		String[] split2 = split[1].split("(?i)" + suf, 2);
 		list.add(pre);// add pre instead of false!
 		if (split2.length == 2) {
 			// suffix found

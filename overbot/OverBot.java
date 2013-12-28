@@ -62,6 +62,7 @@ public class OverBot {
 		continueKey = continueKey.replace(' ', '_');
 		long total = 0;
 		long startTime = System.currentTimeMillis();
+		int deletedCounter = 0;
 
 		while (true) {
 			nextBatchObjects = wiki.listAllFiles(continueKey, 15);
@@ -73,7 +74,21 @@ public class OverBot {
 				if ((wiki.getPageInfo(i).get("protection")).toString()
 						.contains("edit=sysop"))
 					continue;
-				WikiPage target = new WikiPage(wiki, i);
+				WikiPage target = new WikiPage();
+				try {
+					target = new WikiPage(wiki, i);
+				} catch (Exception e) {
+					String exceptionString = e.toString();
+					if (exceptionString.contains("FileNotFoundException")) {
+						System.out.println(exceptionString
+								+ "\nFile probably deleted: "
+								+ "Ignore and Continue with next one...");
+						deletedCounter++;
+						continue;
+					} else {
+						e.printStackTrace();
+					}
+				}
 				target.cleanupOvercat(1, true);
 				target.writeText();
 			}
@@ -84,10 +99,21 @@ public class OverBot {
 				long minutes = (runtime % (60 * 60)) / 60;
 				long seconds = runtime % 60;
 				float avg = ((float) runtime / (float) total);
-				System.out.println("\nStatus:\n" + total + " files crawled in "
-						+ days + " days " + hours + " hours " + minutes
-						+ " minutes " + seconds + " seconds. Thus it took "
-						+ (total == 0 ? "Inf" : avg) + " seconds per file.\n");
+				System.out.println("\nStatus:\n"
+						+ total
+						+ " files crawled in "
+						+ days
+						+ " days "
+						+ hours
+						+ " hours "
+						+ minutes
+						+ " minutes "
+						+ seconds
+						+ " seconds. Thus it took "
+						+ (total == 0 ? "Inf" : avg)
+						+ " seconds per file."
+						+ (deletedCounter > 0 ? " [" + deletedCounter
+								+ " deleted files encountered]" : "") + "\n");
 			}
 			if (continueKey.length() == 0)
 				break; // No next batch available
