@@ -82,7 +82,7 @@ public class OverBot {
 					if (exceptionString.contains("FileNotFoundException")) {
 						System.out.println(exceptionString
 								+ "\nFile probably deleted: "
-								+ "Ignore and Continue with next one...");
+								+ "Ignore and continue with next one...");
 						deletedCounter++;
 						continue;
 					} else {

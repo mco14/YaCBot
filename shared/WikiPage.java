@@ -394,7 +394,7 @@ public class WikiPage {
 
 		int numberOfRemovedCategories = parentCategories.length
 				- cleanParentCategories.length;
-		if (cleanupAnyway || numberOfRemovedCategories > 1) {
+		if (cleanupAnyway || numberOfRemovedCategories > 0) {
 			// Removes the categories from the text
 			for (Category z : parentCategories)
 				replaceAllInPagetext(
@@ -428,15 +428,18 @@ public class WikiPage {
 				false).length;
 		int numberOfAllNotHiddenCategories = wiki.getCategories(this.getName(),
 				false, true).length;
-		if (numberOfAllCategories > 0) {
+		if (numberOfAllNotHiddenCategories == 0) {
+			this.setPlainText(this.getPlainText() + "\n{{subst:unc}}");
+			this.editSummary = getEditSummary()
+					+ "Marked as [[CAT:UNCAT|uncategorized]]. ";
+		}
+		if (numberOfAllCategories == 0) {
 			// Files with a valid license must have at least one hidden category
-			if (numberOfAllNotHiddenCategories == 0) {
-				this.setPlainText(this.getPlainText() + "\n{{subst:unc}}");
-				this.editSummary = getEditSummary()
-						+ "Marked as [[CAT:UNCAT|uncategorized]]. ";
-			}
-		} else {
 			// TODO mark file with missing license?
+			this.setPlainText(this.getPlainText()
+					+ "\n[[Category:Files needing manual category and license cleanup]]");
+			this.editSummary = getEditSummary() + "Zero Categories found: "
+					+ "File needs manual category and license cleanup. ";
 		}
 	}
 
@@ -548,17 +551,19 @@ public class WikiPage {
 		// String codeSuf = "</code>";
 		String prePre = "<pre>";
 		String preSuf = "</pre>";
+		
 		// calculate first occurrence of comment, nowiki or pre
-		int firstComment = text.toLowerCase().indexOf(commentPre);
+		String textInLowerCase = text.toLowerCase();
+		int firstComment = textInLowerCase.indexOf(commentPre);
 		if (firstComment < 0)
 			firstComment = text.length();
-		int firstNowiki = text.toLowerCase().indexOf(nowikiPre);
+		int firstNowiki = textInLowerCase.indexOf(nowikiPre);
 		if (firstNowiki < 0)
 			firstNowiki = text.length();
-		// int firstCode = text.toLowerCase().indexOf(codePre);
+		// int firstCode = textInLowerCase.indexOf(codePre);
 		// if (firstCode < 0)
 		// firstCode = text.length();
-		int firstPre = text.toLowerCase().indexOf(prePre);
+		int firstPre = textInLowerCase.indexOf(prePre);
 		if (firstPre < 0)
 			firstPre = text.length();
 
