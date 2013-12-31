@@ -101,65 +101,81 @@ public class WikiPage {
 				cleanText = textPart
 						.replaceAll(
 								caseInsensitiveMultiline
-										+ "^== *(summary|sumario|descri(ption|pción|ção do arquivo)|achoimriú)( */ *(summary|sumario|descri(ption|pción|ção do arquivo)|achoimriú))? *==",
-								"== {{int:filedesc}} ==")
+										+ "^(\\=+) *(?:summary|(?:Краткое[ _]+)?описание|Beschreibung\\,[ _]+Quelle|Quelle|Beschreibung|वर्णन|sumario|descri(ption|pción|ção do arquivo)|achoimriú)( */ *(?:summary|(?:Краткое[ _]+)?описание|Beschreibung\\,[ _]+Quelle|Quelle|Beschreibung|वर्णन|sumario|descri(ption|pción|ção do arquivo)|achoimriú))? *\\:? *\\1",
+								"$1 {{int:filedesc}} $1")
 						.replaceAll(
 								caseInsensitiveMultiline
-										+ "^== *(\\[\\[.*?\\|)?(licen[cs](e|ing|ia)( */ *licen[cs](e|ing|ia))?|\\{\\{int:license\\}\\})(\\]\\])?:? *==",
-								"== {{int:license-header}} ==")
+										+ "^(\\=+) *(\\[\\[.*?\\|)?(za(?: +d\\'uso)?|Лицензирование|li[zcs]en[zcs](e|ing|ia)?(?:\\s+information)?( */ *(za(?: +d\\'uso)?|Лицензирование|li[zcs]en[zcs](e|ing|ia)?(?:\\s+information)?))?|\\{\\{int:license\\}\\})(\\]\\])? *\\:? *\\1",
+								"$1 {{int:license-header}} $1")
 						.replaceAll(
 								caseInsensitiveMultiline
-										+ "^== *(original upload ?(log|history)|file ?history|ursprüngliche bild-versionen) *==",
-								"== {{original upload log}} ==")
+										+ "^(\\=+) *(?:original upload ?(log|history)|\\{\\{int:wm\\-license\\-original\\-upload\\-log\\}\\}|file ?history|ursprüngliche bild-versionen) *\\:? *\\1",
+								"$1 {{original upload log}} $1")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *technique *= *)(?:\\{\\{ *(?:en|de) *\\|)? *(?:oil[ -]on[ -]canvas|öl[ -]auf[ -]leinwand) *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
-								"$1{{technique|oil|canvas}}$2")
-						.replaceAll(
-								caseInsensitive
-										+ "(\\| *technique *= *)\\{\\{ *de *\\| *öl[ -]auf[ -]holz *\\}\\}(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*technique\\s*=\\s*)\\{\\{ *de *\\|\\s*öl[ -]auf[ -]holz *\\}\\}(\\||\\}\\}|\\r|\\n)",
 								"$1{{technique|oil|wood}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *technique *= *)\\{\\{ *de *\\| *öl[ -]auf[ -]eichenholz *\\}\\}(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*technique\\s*=\\s*)\\{\\{ *de *\\|\\s*öl[ -]auf[ -]eichenholz *\\}\\}(\\||\\}\\}|\\r|\\n)",
 								"$1{{technique|oil|panel|wood=oak}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *technique *= *)(?:\\{\\{ *en *\\|)? *oil[ -]on[ -]panel *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
-								"$1{{technique|oil|panel}}$2")
-						.replaceAll(
-								caseInsensitive
-										+ "(\\| *technique *= *)\\{\\{ *de *\\| *aquarell *\\}\\}(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*technique\\s*=\\s*)\\{\\{ *de *\\|\\s*aquarell *\\}\\}(\\||\\}\\}|\\r|\\n)",
 								"$1{{technique|watercolor}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *technique *= *)\\{\\{ *de *\\| *fresko *\\}\\}(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*technique\\s*=\\s*)\\{\\{ *de *\\|\\s*fresko *\\}\\}(\\||\\}\\}|\\r|\\n)",
 								"$1{{technique|fresco}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *(?:author|artist) *= *)(?:unknown|\\{\\{unknown\\}\\}|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*(?:author|artist)\\s*=\\s*)(?:unknown?|\\{\\{\\s*unknown\\s*\\}\\}|\\?+|unkown|αγνωστος|sconosciuto|ignoto|desconocido|inconnu|not known|desconhecido|unbekannt|неизвестно|Не известен|neznana|nieznany|непознат|okänd|sconossùo|未知|ukjent|onbekend|nich kennt|ലഭ്യമല്ല|непознат|نه‌ناسرا|descoñecido|不明|ignoto|óþekktur|tak diketahui|ismeretlen|nepoznat|לא ידוע|ûnbekend|tuntematon|نامعلوم|teadmata|nekonata|άγνωστος|ukendt|neznámý|desconegut|Неизвестен|ned bekannt|غير معروف)\\s*?\\;?\\.?\\s*?(\\||\\}\\}|\\r|\\n)",
 								"$1{{unknown|author}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *source *= *)(?:own work)? *(?:-|;|</?br *[/\\\\]?>)? *(?:own(?: work(?: by uploader)?)?|(?:œuvre |travail )?personnel(?:le)?|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io) *(?:\\(own work\\))?\\.? *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*source\\s*=\\s*)(?:own work)?\\s*(?:-|;|</?br *[/\\\\]?>)?\\s*(?:own(?: work(?: by uploader)?)?|(?:œuvre |travail )?personnel(?:le)?|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io)\\s*(?:\\(own work\\))?\\.? *(\\||\\}\\}|\\r|\\n)",
 								"$1{{own}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *source *= *)(?:\\{\\{[a-z]{2,3} *\\|)? *(?:own(?: work(?: by uploader)?)?|travail personnel|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io) *(?:\\}\\})? *(?:\\{\\{[a-z]{2,3} *\\|)? *(?:\\(?(?:own *work)\\)?)? *(?:\\}\\})?(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*source\\s*=\\s*)(?:own[^a-z]*work|opera[^a-z]*propria|trabajo[^a-z]*propio|travail[^a-z]*personnel|eigenes[^a-z]*werk|eigen[^a-z]*werk|собственная[^a-z]*работа|投稿者自身による作品|自己的作品|praca[^a-z]*pw[łl]asna|Obra(?:[^a-z]*do)?[^a-z]*pr[oó]prio|Treball[^a-z]*propi|Собствена[^a-z]*творба|Vlastní[^a-z]*dílo|Eget[^a-z]*arbejde|Propra[^a-z]*verko|Norberak[^a-z]*egina|عمل[^a-z]*شخصي|اثر[^a-z]*شخصی|자작|अपना[^a-z]*काम|נוצר[^a-z]*על[^a-z]*ידי[^a-z]*מעלה[^a-z]*היצירה|Karya[^a-z]*sendiri|Vlastito[^a-z]*djelo[^a-z]*postavljača|Mano[^a-z]*darbas|A[^a-z]*feltöltő[^a-z]*saját[^a-z]*munkája|Karya[^a-z]*sendiri|Eget[^a-z]*verk|Oper[aă][^a-z]*proprie|Vlastné[^a-z]*dielo|Lastno[^a-z]*delo|Сопствено[^a-z]*дело|Oma[^a-z]*teos|Eget[^a-z]*arbete|Yükleyenin[^a-z]*kendi[^a-z]*çalışması|Власна[^a-z]*робота|Sariling[^a-z]*gawa|eie[^a-z]*werk|сопствено[^a-z]*дело|Eige[^a-z]*arbeid|პირადი[^a-z]*ნამუშევარი)\\;?\\.? *(\\||\\}\\}|\\r|\\n)",
 								"$1{{own}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *author *= *)(?:anonym(?:e|ous)?|anonyymi|anoniem|an[oòóô]nimo?|ismeretlen|不明（匿名）|미상|ανώνυμος|аноним(?:ен|ный художник)|neznámy|nieznany)\\.? *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*source\\s*=\\s*)(((?:\\'\\'+)?)([\\\"\\']?)(?:selbst\\W*erstellte?s?|selbst\\W*gezeichnete?s?|self\\W*made|eigene?s?)\\W*(?:arbeit|aufnahme|(?:ph|f)oto(?:gra(?:ph|f)ie)?)?\\.?\\4\\3) *(\\||\\}\\}|\\r|\\n)",
+								"$1{{own}} ({{original text|1=$2|nobold=1}})$5")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*source\\s*=\\s*)(?:self[^a-z]*photographed|selbst[^a-z]*(?:aufgenommen|(?:f|ph)otogra(?:f|ph)iert?)|投稿者撮影|投稿者の撮影)\\s*?\\.? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{self-photographed}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*author\\s*=\\s*)(?:anonym(?:e|ous)?|anonyymi|anoniem|an[oòóô]n[yi]mo?|ismeretlen|不明（匿名）|미상|ανώνυμος|аноним(?:ен|ный художник)|neznámy|nieznany|مجهول|Ананім|Anonymní|Ezezaguna|Anonüümne|אלמוני|អនាមិក|Anonimas|അജ്ഞാതം|Анонимный автор|佚名)\\s*?\\.?\\;?\\s*?(\\||\\}\\}|\\r|\\n)",
 								"$1{{anonymous}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *gallery *= *)private(?: collection)? *(\\||\\}\\}|\\r|\\n)",
-								"$1{{private collection}}$2");
+										+ "(\\|\\s*author\\s*=\\s*)(?:unknown\\s*photographer|photographer\\s*unknown)\\s*?\\;?\\.?\\s*?(\\||\\}\\}|\\r|\\n)",
+								"$1{{unknown photographer}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*gallery\\s*=\\s*)private(?: collection)? *(\\||\\}\\}|\\r|\\n)",
+								"$1{{private collection}}$2")
+						.replaceAll(
+								caseInsensitive
+										+ "The original description page (?:is\\/was|is|was) \\[(?:https?:)?\\/\\/(?:www\\.)?((?:[a-z\\-]+\\.)?wik[a-z]+(?:\\-old)?)\\.org\\/w((?:\\/shared)?)\\/index\\.php\\?title\\=(?:[a-z]+)(?:\\:|%3A)([^\\[\\]\\|}{]+?) +here(?:\\]\\.?|\\.?\\])(\\s+All following user names refer to (?:\\1(?:\\.org)?\\2|(?:wts|shared)\\.oldwikivoyage)\\.?)?",
+								"{{original description page|$1$2|$3}}")
+						.replaceAll(
+								caseInsensitive
+										+ "This file was originally uploaded at ([a-z\\-]+\\.wik[a-z]+) as \\[(?:https?:)?\\/\\/\\1\\.org\\/wiki\\/(?:[a-z]+)(?:\\:|%3A)([\\w\\%\\-\\.\\~\\:\\/\\?\\#\\[\\]\\@\\!\\$\\&\\'\\(\\)\\*\\+\\,\\;\\=]+?)(?: |\\])+[^\\]\\n]*\\](?:\\s*\\,?\\s*before it was transferr?ed to commons)?\\.?",
+								"{{original description page|$1|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\=+\\s*\\{\\{ *original[ _]+upload[ _]+log *\\}\\}\\s*\\=+\\s*)(\\{\\{ *original[ _]+description[ _]+page *\\|\\s*([a-z\\-]+\\.w[a-z]+)\\s*\\|\\s*[^}\\|\\[{]+\\}\\})\\s*using\\s*\\[\\[\\:en\\:WP\\:FTCG\\|FtCG\\]\\]\\.?",
+								"$1{{transferred from|$3||[[:en:WP:FTCG|FtCG]]}} $2");
 				cleanText = multipleReplaceAll(
 						cleanText,
 						caseInsensitiveMultiline
-								+ "^ *== *(.*?) *== *[\\r\\n]+ *== *\\1 *== *$",
-						"== $1 ==");
+								+ "^ *(\\=+) *(.*?) *\\=+ *[\\r\\n]+\\=+ *\\2 *\\=+ *$",
+						"$1 $2 $1");
 				if (!(textPart.equals(cleanText))) {
 					if (!editSummary
 							.contains("[[Com:IntRegex|Internationalisation]]. "))
@@ -170,16 +186,28 @@ public class WikiPage {
 				cleanText = textPart
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *description *=) *(?:\\{\\{ *description missing *\\}\\}|(?:\\{\\{en *\\|)? *(?:'')?no original description(?:'')? *(?:\\}\\})?) *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*description\\s*=)\\s*(?:\\{\\{ *description missing *\\}\\}|(?:\\{\\{en *\\|) *(?:'')?no original description(?:'')? *(?:\\}\\})|(?:'')?no original description(?:'')? *) *(\\||\\}\\}|\\r|\\n)",
 								"$1$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *permission *=) *(?:-|see(?: licens(?:e|ing))?(?: below)?|yes|oui)\\.? *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*permission\\s*=)\\s*(\\'\\')?(?:-|下記を参照|see(?: licens(?:e|ing|e +section))?(?: below)?|yes|oui)\\s*?\\,?\\.?;?\\s*\\2\\s*(\\||\\}\\}|\\r|\\n)",
+								"$1$3")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*other[_ ]versions\\s*=)\\s*(?:<i>)?(?:-|no|none?(?: known)?|nein|yes|keine|\\-+)\\.?(?:</i>)? *(\\||\\}\\}|\\r|\\n)",
 								"$1$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *other[_ ]versions *=) *(?:<i>)?(?:-|no|none?(?: known)?)\\.?(?:</i>)? *(\\||\\}\\}|\\r|\\n)",
-								"$1$2");
+										+ "(?:move approved by: *\\[\\[:?User:[^\\]\\[{}]*\\]\\]\\.?)?(.*?)(?:This image was moved from *\\[\\[:?File:[^\\]\\[{}]*\\]\\]\\.?)?",
+								"$1")
+						.replaceAll(
+								caseInsensitive
+										+ "\\{\\{\\s*(?:Ship|Art\\.|bots|football[ _]+kit|template[ _]+other|s|tl|tlxs|template|template[ _]+link|temp|tls|tlx|tl1|tlp|tlsx|tlsp|mbox|tmbox(?:\\/core)?|lan|jULIANDAY|file[ _]+title|nowrap|plural|time[ _]+ago|time[ _]+ago\\/core|toolbar|red|green|sp|other date|max|max\\/2|str[ _]+left|str[ _]+right|music|date|cite[ _]+book|citation\\/core|citation\\/make[ _]+link|citation\\/identifier|citation|cite|cite[ _]+book|citation\\/authors|citation\\/make[ _]+link|cite[ _]+journal|cite[ _]+patent|cite[ _]+web|hide in print|only in print|parmPart|error|crediti|fontcolor|transclude|trim|navbox|navbar|section[ _]+link|yesno|center|unused|•|infobox\\/row)\\s*\\}\\}",
+								"")
+						.replaceAll(
+								caseInsensitive
+										+ "\\{\\{\\s*PermissionOTRS\\s*\\|\\s*(?:https?:)?\\/\\/ticket\\.wikimedia\\.org\\/otrs\\/index\\.pl\\?Action\\s*\\=\\s*AgentTicketZoom&(?:amp;)?TicketNumber\\=(\\d+)\\s*\\}\\}",
+								"{{PermissionOTRS|id=$1}}");
 				if (!(textPart.equals(cleanText))) {
 					if (!editSummary
 							.contains("Removing redundant information. "))
@@ -192,40 +220,108 @@ public class WikiPage {
 				cleanText = textPart
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *date *= *)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(0[1-9]|1[0-2])\\3(1[3-9]|2[0-9]|3[01])(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*date\\s*=\\s*)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(0[1-9]|1[0-2])\\3(1[3-9]|2[0-9]|3[01])(\\||\\}\\}|\\r|\\n)",
 								"$1$2-$4-$5$6")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *date *= *)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3(0[1-9]|1[0-2])(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*date\\s*=\\s*)(?:created|made|taken)? *([0-9]{4})(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3(0[1-9]|1[0-2])(\\||\\}\\}|\\r|\\n)",
 								"$1$2-$5-$4$6")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *date *= *)(?:created|made|taken)? *(0[1-9]|1[0-2])(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3([0-9]{4})(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*date\\s*=\\s*)(?:created|made|taken)? *(0[1-9]|1[0-2])(-| |/|\\.|)(1[3-9]|2[0-9]|3[01])\\3([0-9]{4})(\\||\\}\\}|\\r|\\n)",
 								"$1$5-$2-$4$6")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *date *= *)(?:created|made|taken)? *(1[3-9]|2[0-9]|3[01])(-| |/|\\.|)(0[1-9]|1[0-2])\\3(2[0-9]{3}|1[89][0-9]{2})(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*date\\s*=\\s*)(?:created|made|taken)? *(1[3-9]|2[0-9]|3[01])(-| |/|\\.|)(0[1-9]|1[0-2])\\3(2[0-9]{3}|1[89][0-9]{2})(\\||\\}\\}|\\r|\\n)",
 								"$1$5-$4-$2$6")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *date *= *)(?:created|made|taken)? *\\{\\{date\\|([0-9]{4})\\|(0[1-9]|1[012])\\|(0?[1-9]|1[0-9]|2[0-9]|3[01])\\}\\}(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*date\\s*=\\s*)(?:created|made|taken)? *\\{\\{date\\|([0-9]{4})\\|(0[1-9]|1[012])\\|(0?[1-9]|1[0-9]|2[0-9]|3[01])\\}\\}(\\||\\}\\}|\\r|\\n)",
 								"$1$2-$3-$4$5")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *(?:date|year) *= *)(\\d\\d?)(?:st|nd|rd|th) *century *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*(?:date|year)\\s*=\\s*)(?:unknown?(?:\\s*date)?|\\?|unbekannte?s?(\\s*datum))",
+								"$1{{unknown|date}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*(?:date|year)\\s*=\\s*)(\\d\\d?)(?:st|nd|rd|th) *century *(\\||\\}\\}|\\r|\\n)",
 								"$1{{other date|century|$2}}$3")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *(?:date|year) *= *)(?:cir)?ca?\\.? *(\\d{4}) *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*(?:date|year)\\s*=\\s*)(?:cir)?ca?\\.? *(\\d{4}) *(\\||\\}\\}|\\r|\\n)",
 								"$1{{other date|~|$2}}$3")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *(?:date|year) *= *)(?:unknown|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*(?:date|year)\\s*=\\s*)(?:unknown|\\?+)\\.? *(\\||\\}\\}|\\r|\\n)",
 								"$1{{other date|?}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\| *date *= *)(?:\\{\\{date\\|)?([0-9]{4})[|-](0[1-9]|1[012])[|-](0[1-9]|1[0-9]|2[0-9]|3[01])(?:\\}\\})? *\\((original upload date|according to EXIF data)\\) *(\\||\\}\\}|\\r|\\n)",
-								"$1{{$5|$2-$3-$4}}$6");
+										+ "(\\{\\{original upload date\\|\\d{4}\\-\\d{2}\\-\\d{2}\\}\\})\\s*(?:\\(original\\s*upload\\s*date\\)|\\(\\s*first\\s*version\\s*\\);?\\s*\\{\\{original upload date\\|\\d{4}\\-\\d{2}\\-\\d{2}\\}\\}\\s*\\(\\s*last\\s*version\\s*\\))",
+								"$1")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:\\{\\{date\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\}\\}|(\\d{4})\\-(\\d{2})\\-(\\d{2}))\\s*\\(\\s*(original upload date|according to EXIF data)\\s*\\)\\s*(\\||\\}\\}|\\r|\\n)",
+								"$1{{$8|$2$5-$3$6-$4$7}}$9")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)\\{\\{\\s*date\\s*\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\}\\}\\s*\\(\\s*first\\s*version\\s*\\)\\;?\\s*\\{\\{\\s*date\\s*\\|\\s*\\d+\\s*\\|\\s*\\d+\\s*\\|\\s*\\d+\\s*\\}\\}\\s*\\(\\s*last\\s*version\\s*\\)",
+								"$1{{original upload date|$2-$3-$4}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(\\d{4})\\-(\\d{2})\\-(\\d{2})\\s*\\(\\s*first\\s*version\\s*\\)\\;?\\s*(\\d{4})\\-(\\d{2})\\-(\\d{2})\\s*\\(\\s*last\\s*version\\s*\\)",
+								"$1{{original upload date|$2-$3-$4}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*\\(?\\s*)(?:Uploaded\\s*on\\s*Commons\\s*at\\s*[\\d\\-]*\\s*[\\d:]*\\s*\\(?UTC\\)?\\s*\\/?\\s*)?Original(?:ly)?\\s*uploaded\\s*at\\s*([\\d\\-]*)\\s*[\\d:]*",
+								"$1{{original upload date|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(\\d{1,3}0)\\s*s",
+								"$1{{other date|s|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:after|post|بعد|desprès|po|nach|efter|μετά από|después de|pärast|پس از|après|despois do|לאחר|nakon|dopo il|по|na|após|după|после)\\s*(\\d{4})",
+								"$1{{other date|after|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:before|vor|pre|до|vör|voor|prior to|ante|antes de|قبل|Преди|abans|před|før|πριν από|enne|پیش از|ennen|avant|antes do|לפני|prije|prima del|пред|przed|înainte de|ранее|pred|före)[\\s\\-]*(\\d{4})",
+								"$1{{other date|before|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(\\d{4})\\s*(?:or|أو|o|nebo|eller|oder|ή|ó|või|یا|tai|ou|או|vagy|または|или|അഥവാ|of|lub|ou|sau|или|ali|หรือ|和)\\s*?(\\d{4})",
+								"$1{{other date|or|$2|$3}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:sometime\\s*)?(?:between)\\s*(\\d{4})\\s*(?:and|\\-)?\\s*?(\\d{4})",
+								"$1{{other date|between|$2|$3}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:primavera(?:\\s*de)?|jaro|forår|frühling|spring|printempo|Kevät|printemps|пролет|Vörjohr|früh[ \\-]?jahr|voorjaar|wiosna|primăvara(?:\\s*lui)?|весна|pomlad|våren|spring)\\s*(\\d{4})",
+								"$1{{other date|spring|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:estiu|léto|somero|verano|Kesä|été|verán|estate|лето|zomer|lato|verão(?:\\s*de)?|vara(?:\\s*lui)?|poletje|sommaren|sommer|summer)\\s*(\\d{4})",
+								"$1{{other date|summer|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:fall|autumn|tardor|podzim|Efterår|Herbst|aŭtuno|otoño|Syksy||outono(?:\\s*de)?automne|outono|autunno|есен|Harvst|herfst|jesień|toamna(?:\\s*lui)?|осень|jesen|hösten)\\s*(\\d{4})",
+								"$1{{other date|fall|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:winter|hivern|zima|Vinter|vintro|invierno|Talvi|hiver|inverno(?:\\s*de)?|зима|iarna(?:\\s*lui)?|зима|zima|vintern)\\s*(\\d{4})",
+								"$1{{other date|winter|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})",
+								"$1{{other date|circa|$2}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})\\s*\\-\\s*(\\d{3,4})?",
+								"$1{{other date|circa|$2|$3}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)\\{\\{\\s*ISOdate\\s*\\|\\s*([\\d\\-]+)\\s*\\}\\}\\s*\\(\\s*from\\s*metadata\\s*\\)",
+								"$1{{according to EXIF|$2}}");
 				if (!(textPart.equals(cleanText))) {
 					if (!editSummary
 							.contains("[[Com:Regex#Dates|Standardizing dates]]. "))
@@ -418,6 +514,11 @@ public class WikiPage {
 	}
 
 	/**
+	 * Checks if the file has more than one not hidden category, otherwise the
+	 * file gets marked with {{subst:unc}}. (In case there is _no_ category at
+	 * all, the file gets additionally marked with another maintenance category
+	 * and subsequently should be manually examined.)
+	 * 
 	 * @throws IOException
 	 * 
 	 */
@@ -434,8 +535,6 @@ public class WikiPage {
 					+ "Marked as [[CAT:UNCAT|uncategorized]]. ";
 		}
 		if (numberOfAllCategories == 0) {
-			// Files with a valid license must have at least one hidden category
-			// TODO mark file with missing license?
 			this.setPlainText(this.getPlainText()
 					+ "\n[[Category:Files needing manual category and license cleanup]]");
 			this.editSummary = getEditSummary() + "Zero Categories found: "
@@ -551,7 +650,7 @@ public class WikiPage {
 		// String codeSuf = "</code>";
 		String prePre = "<pre>";
 		String preSuf = "</pre>";
-		
+
 		// calculate first occurrence of comment, nowiki or pre
 		String textInLowerCase = text.toLowerCase();
 		int firstComment = textInLowerCase.indexOf(commentPre);
