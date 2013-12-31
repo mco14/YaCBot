@@ -11,7 +11,7 @@ public class YaCBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.30");
+		System.out.println("v13.12.31");
 
 		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {
@@ -37,7 +37,7 @@ public class YaCBot {
 			// Pause bot if lag is greater than ... in s
 			commons.setMaxLag(3);
 			commons.setMarkMinor(true);
-			commons.setMarkBot(false);
+			commons.setMarkBot(true);
 			cleanup(commons, args[1]);
 		} catch (LoginException | IOException e) {
 			e.printStackTrace();
@@ -89,7 +89,9 @@ public class YaCBot {
 						e.printStackTrace();
 					}
 				}
+				target.cleanupWikitext();
 				target.cleanupOvercat(1, true);
+				target.cleanupUndercat();
 				target.writeText();
 			}
 			{

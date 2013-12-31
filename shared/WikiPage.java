@@ -469,19 +469,23 @@ public class WikiPage {
 			this.cleanupWikitext();
 		// Category array derived from the pageText
 		Category[] parentCategories = getParentCatsNoDupes();
-
+		boolean cleanupAnyway = !editSummary.isEmpty()
+				|| duplicateCategoryCleanup;
 		// String array returned via the API, no duplicate entries, no sortkey,
 		// no prefix
 		String[] allGrandparentCategories;
 		{
-			Set<String> listSet = all_grand_parentCats(wiki,
-					wiki.getCategories(name, false, ignoreHidden), depth,
+			String[] pageCategories = wiki.getCategories(name, false,
 					ignoreHidden);
+			if (pageCategories.length == 1 && !cleanupAnyway)
+				// no way of COM:OVERCAT and nothing to clean up
+				return;
+			Set<String> listSet = all_grand_parentCats(wiki, pageCategories,
+					depth, ignoreHidden);
 			allGrandparentCategories = listSet.toArray(new String[listSet
 					.size()]);
 		}
-		boolean cleanupAnyway = !editSummary.isEmpty()
-				|| duplicateCategoryCleanup;
+
 		Object[] cleanedCatsAndText = returnCleanedCatsAndText(cleanupAnyway,
 				parentCategories, allGrandparentCategories);
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
@@ -510,7 +514,6 @@ public class WikiPage {
 				this.editSummary = getEditSummary()
 						+ "Removed duplicate categories. ";
 		}
-		cleanupUndercat();
 	}
 
 	/**
@@ -523,22 +526,43 @@ public class WikiPage {
 	 * 
 	 */
 	public void cleanupUndercat() throws IOException {
-		// TODO fetch request may already been done
+		// TODO fetch request _may_ already been done
 		// -> save them for later use and use them now!
-		int numberOfAllCategories = wiki.getCategories(this.getName(), false,
-				false).length;
-		int numberOfAllNotHiddenCategories = wiki.getCategories(this.getName(),
-				false, true).length;
-		if (numberOfAllNotHiddenCategories == 0) {
+		String[] allCategories = wiki.getCategories(this.getName(), false,
+				false);
+		String[] allNotHiddenCategories = wiki.getCategories(this.getName(),
+				false, true);
+		// count the number of not hidden categories which likely serve only for
+		// {{UNC}}-maintenance
+		int UNCtotal = 0;
+		int UNChidden = 0;
+		for (String c : allCategories)
+			if (c.contains("needing categories")) {
+				++UNCtotal;
+				String[] parentsTemp = wiki.getCategories(c, false, true);
+				for (String t : parentsTemp)
+					if (t.equals("Category:Hidden categories"))
+						++UNChidden;
+			}
+		if (allNotHiddenCategories.length - (UNCtotal - UNChidden) > 0) {
+			// Very likely we have some valid not hidden categories
+			String plainText = this.getPlainText();
+			// Regex stolen from
+			// https://commons.wikimedia.org/wiki/MediaWiki:Gadget-HotCat.js
+			String uncatRegexp = "\\{\\{\\s*([Uu]ncat(egori[sz]ed( image)?)?|[Nn]ocat|[Nn]eedscategory)[^}]*\\}\\}\\s*(<\\!--.*?--\\>)?";
+			String cleanPlainText = plainText.replaceAll(uncatRegexp, "");
+			if (plainText.length() != cleanPlainText.length()) {
+				this.editSummary = getEditSummary()
+						+ (allNotHiddenCategories.length - (UNCtotal - UNChidden))
+						+ " visible categories: removed {{uncategorized}}. ";
+				this.setPlainText(cleanPlainText);
+			}
+		}
+		if (allNotHiddenCategories.length == 0 && UNCtotal == 0) {
+			// likely we do _not_ have the {{unc}} template
 			this.setPlainText(this.getPlainText() + "\n{{subst:unc}}");
 			this.editSummary = getEditSummary()
 					+ "Marked as [[CAT:UNCAT|uncategorized]]. ";
-		}
-		if (numberOfAllCategories == 0) {
-			this.setPlainText(this.getPlainText()
-					+ "\n[[Category:Files needing manual category and license cleanup]]");
-			this.editSummary = getEditSummary() + "Zero Categories found: "
-					+ "File needs manual category and license cleanup. ";
 		}
 	}
 
