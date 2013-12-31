@@ -133,7 +133,7 @@ public class WikiPage {
 								"$1{{unknown|author}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*source\\s*=\\s*)(?:own work)?\\s*(?:-|;|</?br *[/\\\\]?>)?\\s*(?:own(?: work(?: by uploader)?)?|(?:œuvre |travail )?personnel(?:le)?|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io)\\s*(?:\\(own work\\))?\\.? *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*source\\s*=\\s*)(?:own work)?\\s*(?:-|;|</?br *[/\\\\]?>)?\\s*(?:own(?: work(?: by uploader)?)?|(?:œuvre |travail )?personnel(?:le)?|self[- ]made|création perso|selbst fotografiert|obra pr[òo]pia|trabajo propr?io)\\s*?(?:\\(own work\\))?\\.? *(\\||\\}\\}|\\r|\\n)",
 								"$1{{own}}$2")
 						.replaceAll(
 								caseInsensitive
@@ -186,11 +186,11 @@ public class WikiPage {
 				cleanText = textPart
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*description\\s*=)\\s*(?:\\{\\{ *description missing *\\}\\}|(?:\\{\\{en *\\|) *(?:'')?no original description(?:'')? *(?:\\}\\})|(?:'')?no original description(?:'')? *) *(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*description\\s*=)\\s*(?:\\{\\{ *description missing *\\}\\}|\\s*description missing\\s*?|(?:\\{\\{en *\\|) *(?:'')?no original description(?:'')? *(?:\\}\\})|(?:'')?no original description(?:'')? *) *(\\||\\}\\}|\\r|\\n)",
 								"$1$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*permission\\s*=)\\s*(\\'\\')?(?:-|下記を参照|see(?: licens(?:e|ing|e +section))?(?: below)?|yes|oui)\\s*?\\,?\\.?;?\\s*\\2\\s*(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*permission\\s*=)\\s*((?:\\'\\')?)(?:-|下記を参照|see(?: licens(?:e|ing|e +section))?(?: below)?|yes|oui)\\s*?\\,?\\.?;?\\s*?\\2\\s*?(\\||\\}\\}|\\r|\\n)",
 								"$1$3")
 						.replaceAll(
 								caseInsensitive
@@ -198,7 +198,7 @@ public class WikiPage {
 								"$1$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(?:move approved by: *\\[\\[:?User:[^\\]\\[{}]*\\]\\]\\.?)?(.*?)(?:This image was moved from *\\[\\[:?File:[^\\]\\[{}]*\\]\\]\\.?)?",
+										+ "(?:move approved by: *\\[\\[:?User:[^\\]\\[{}]*\\]\\]\\.?)?((?:.|\\n)*?)(?:This image was moved from *\\[\\[:?(?:File|image):?[^\\]\\[{}]*\\]\\]\\.?)?",
 								"$1")
 						.replaceAll(
 								caseInsensitive
@@ -240,7 +240,7 @@ public class WikiPage {
 								"$1$2-$3-$4$5")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*(?:date|year)\\s*=\\s*)(?:unknown?(?:\\s*date)?|\\?|unbekannte?s?(\\s*datum))",
+										+ "(\\|\\s*(?:date|year)\\s*=\\s*)(?:unknown?(?:\\s*date)?|\\?|unbekannte?s?(\\s*datum)?)",
 								"$1{{unknown|date}}")
 						.replaceAll(
 								caseInsensitive
@@ -260,7 +260,7 @@ public class WikiPage {
 								"$1")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*date\\s*=\\s*)(?:\\{\\{date\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\}\\}|(\\d{4})\\-(\\d{2})\\-(\\d{2}))\\s*\\(\\s*(original upload date|according to EXIF data)\\s*\\)\\s*(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*date\\s*=\\s*)(?:\\{\\{date\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\|\\s*(\\d+)\\s*\\}\\}|(\\d{4})\\-(\\d{2})\\-(\\d{2}))\\s*\\(\\s*(original upload date|according to EXIF data)\\s*\\)\\s*?(\\||\\}\\}|\\r|\\n)",
 								"$1{{$8|$2$5-$3$6-$4$7}}$9")
 						.replaceAll(
 								caseInsensitive
@@ -304,7 +304,7 @@ public class WikiPage {
 								"$1{{other date|summer|$2}}")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*date\\s*=\\s*)(?:fall|autumn|tardor|podzim|Efterår|Herbst|aŭtuno|otoño|Syksy||outono(?:\\s*de)?automne|outono|autunno|есен|Harvst|herfst|jesień|toamna(?:\\s*lui)?|осень|jesen|hösten)\\s*(\\d{4})",
+										+ "(\\|\\s*date\\s*=\\s*)(?:fall|autumn|tardor|podzim|Efterår|Herbst|aŭtuno|otoño|Syksy|outono(?:\\s*de)?automne|outono|autunno|есен|Harvst|herfst|jesień|toamna(?:\\s*lui)?|осень|jesen|hösten)\\s*(\\d{4})",
 								"$1{{other date|fall|$2}}")
 						.replaceAll(
 								caseInsensitive
@@ -312,12 +312,12 @@ public class WikiPage {
 								"$1{{other date|winter|$2}}")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})",
-								"$1{{other date|circa|$2}}")
-						.replaceAll(
-								caseInsensitive
 										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})\\s*\\-\\s*(\\d{3,4})?",
 								"$1{{other date|circa|$2|$3}}")
+						.replaceAll(
+								caseInsensitive
+										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})",
+								"$1{{other date|circa|$2}}")
 						.replaceAll(
 								caseInsensitive
 										+ "(\\|\\s*date\\s*=\\s*)\\{\\{\\s*ISOdate\\s*\\|\\s*([\\d\\-]+)\\s*\\}\\}\\s*\\(\\s*from\\s*metadata\\s*\\)",
@@ -392,7 +392,7 @@ public class WikiPage {
 							"<br$1$2>")
 					.replaceAll(
 							caseInsensitive
-									+ "(\\{\\{\\}\\}|\\[\\[\\]\\]|<gallery></gallery>|\\[\\[:?File *: *\\]\\]|)",
+									+ "(\\{\\{\\}\\}|\\[\\[\\]\\]|<gallery></gallery>|\\[\\[:?File *: *\\]\\])",
 							"");
 			if (!(textPart.equals(cleanText))) {
 				if (!editSummary

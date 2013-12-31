@@ -7,11 +7,11 @@ import javax.security.auth.login.LoginException;
 import shared.Wiki;
 import shared.WikiPage;
 
-public class OverBot {
+public class YaCBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v13.12.23");
+		System.out.println("v13.12.30");
 
 		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {
