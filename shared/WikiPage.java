@@ -674,8 +674,9 @@ public class WikiPage {
 
 		int smallestIndexOfPrefix = text.length();
 		int prefixWithSmallestIndex = -1;
+		String textInLowerCase = text.toLowerCase();
 		for (int e = 0; e < preserve.length; ++e) {
-			int indexOfPrefixE = text.toLowerCase().indexOf(preserve[e][0]);
+			int indexOfPrefixE = textInLowerCase.indexOf(preserve[e][0]);
 			if (indexOfPrefixE > -1 && indexOfPrefixE < smallestIndexOfPrefix) {
 				smallestIndexOfPrefix = indexOfPrefixE;
 				prefixWithSmallestIndex = e;
