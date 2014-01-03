@@ -437,7 +437,7 @@ public class WikiPage {
 		int maximumReplacements = 1000;
 		while (true) {
 			string2 = text.replaceAll(regex, replacement);
-			{// TODO Remove this after debug!
+			{
 				if (maximumReplacements == 1) {
 					System.out.println("Too many replacements for regex=\n'"
 							+ regex + "'\nand replacement=\n'" + replacement
@@ -544,8 +544,8 @@ public class WikiPage {
 					if (t.equals("Category:Hidden categories"))
 						++UNChidden;
 			}
-		if (allNotHiddenCategories.length - (UNCtotal - UNChidden) > 0) {
-			// Very likely we have some valid not hidden categories
+		if (allNotHiddenCategories.length - (UNCtotal - UNChidden) > 1) {
+			// Very likely we have _two_ valid not hidden categories
 			String plainText = this.getPlainText();
 			// Regex stolen from
 			// https://commons.wikimedia.org/wiki/MediaWiki:Gadget-HotCat.js
@@ -590,7 +590,6 @@ public class WikiPage {
 		int revokedCounter = 0;
 		String revokedFlag = "e7db5f37c0a2bc9b525d8ab86ea9ed12";
 		// calculate the number of redundant categories
-		// TODO: reduce to one for loop if possible?!
 		for (int i = 0; i < parentCategories.length; i++) {
 			cleanCategories[i] = new Category(parentCategories[i].getName(),
 					parentCategories[i].getSortkey()); // clone
@@ -664,69 +663,32 @@ public class WikiPage {
 	 */
 	private static LinkedList<String> tokenizeWikitext(String text) {
 		LinkedList<String> list = new LinkedList<String>();
-		String commentPre = "<!--";
-		String commentSuf = "-->";
-		String nowikiPre = "<nowiki>";
-		String nowikiSuf = "</nowiki>";
-		// May cause problems in other methods when
-		// <code><nowiki>sth.</nowiki></code>
-		// String codePre = "<code>";
-		// String codeSuf = "</code>";
-		String prePre = "<pre>";
-		String preSuf = "</pre>";
+		String[][] preserve = {
+				{ "<!--", "-->" },
+				{ "<nowiki>", "</nowiki>" },//
+				{ "<pre>", "</pre>" },
+				{ "<syntaxhighlight", "</syntaxhighlight>" },
+				{ "<templatedata", "</templatedata>" } };
+		// TODO suppress the false positives by rewriting the code somehow.
+		// (Note the missing '>')
 
-		// calculate first occurrence of comment, nowiki or pre
-		String textInLowerCase = text.toLowerCase();
-		int firstComment = textInLowerCase.indexOf(commentPre);
-		if (firstComment < 0)
-			firstComment = text.length();
-		int firstNowiki = textInLowerCase.indexOf(nowikiPre);
-		if (firstNowiki < 0)
-			firstNowiki = text.length();
-		// int firstCode = textInLowerCase.indexOf(codePre);
-		// if (firstCode < 0)
-		// firstCode = text.length();
-		int firstPre = textInLowerCase.indexOf(prePre);
-		if (firstPre < 0)
-			firstPre = text.length();
+		int smallestIndexOfPrefix = text.length();
+		int prefixWithSmallestIndex = -1;
+		for (int e = 0; e < preserve.length; ++e) {
+			int indexOfPrefixE = text.toLowerCase().indexOf(preserve[e][0]);
+			if (indexOfPrefixE > -1 && indexOfPrefixE < smallestIndexOfPrefix) {
+				smallestIndexOfPrefix = indexOfPrefixE;
+				prefixWithSmallestIndex = e;
+			}
+		}
+		if (smallestIndexOfPrefix == text.length()) {
+			list.add("true");
+			list.add(text);
+			return list;
+		}
+		String pre = preserve[prefixWithSmallestIndex][0];
+		String suf = preserve[prefixWithSmallestIndex][1];
 
-		String pre;
-		String suf;
-		do {
-			// decide which one is the very first
-			int first = Math.min(firstComment,
-					Math.min(firstNowiki, Math.min(firstPre, firstPre))); // firstCode
-			if (first == text.length()) {
-				list.add("true");
-				list.add(text);
-				return list;
-			}
-			if (firstComment == first) {
-				pre = commentPre;
-				suf = commentSuf;
-				break;
-			}
-			if (firstNowiki == first) {
-				pre = nowikiPre;
-				suf = nowikiSuf;
-				break;
-			}
-			// if (firstCode == first) {
-			// pre = codePre;
-			// suf = codeSuf;
-			// break;
-			// }
-			if (firstPre == first) {
-				pre = prePre;
-				suf = preSuf;
-				break;
-			}
-			{// TODO remove after testing
-				pre = "fatal error";
-				suf = pre;
-				System.exit(-1);
-			}
-		} while (false);
 		String[] split = text.split("(?i)" + pre, 2);
 		list.add("true");
 		list.add(split[0]);
@@ -824,11 +786,6 @@ public class WikiPage {
 				.compile(
 						"\\[\\[[cC]ategory:[^\\|#\\]\\[}{><]+(\\|[^#\\]\\[}{><]*)?\\]\\]")
 				.matcher(this.getPlainTextNoComments());
-		{// TODO Remove this after debug!
-			// The above match (if any) should also match the following regex to
-			// be valid
-			// [%!\"$&'()*,\\-.\\/0-9:;=?@A-Z\\\\^_`a-z~\\x80-\\xFF+]
-		}
 		int hits = 0;
 		List<String> parentsList = new ArrayList<String>();
 		while (m.find()) {
