@@ -665,12 +665,15 @@ public class WikiPage {
 		LinkedList<String> list = new LinkedList<String>();
 		String[][] preserve = {
 				{ "<!--", "-->" },
-				{ "<nowiki>", "</nowiki>" },//
-				{ "<pre>", "</pre>" },
+				{ "<nowiki>", "</nowiki>" },
+				{ "<pre>", "</pre>" },//
+				{ "<source>", "</source>" },
 				{ "<syntaxhighlight", "</syntaxhighlight>" },
 				{ "<templatedata", "</templatedata>" } };
 		// TODO suppress the false positives by rewriting the code somehow.
 		// (Note the missing '>')
+		// preserve stolen from
+		// https://commons.wikimedia.org/w/index.php?diff=113112713
 
 		int smallestIndexOfPrefix = text.length();
 		int prefixWithSmallestIndex = -1;
