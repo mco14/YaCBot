@@ -92,6 +92,7 @@ public class YaCBot {
 				target.cleanupWikitext();
 				target.cleanupOvercat(1, true);
 				target.cleanupUndercat();
+				/*** /
 				if (target.getLogSummary() != null)
 					wiki.edit(
 							"User:YaCBot/log",
@@ -109,6 +110,7 @@ public class YaCBot {
 													"]]\n*#[["),
 							"Logging removed categories for file [[:"
 									+ target.getName() + "]]");
+				/***/
 				target.writeText();
 			}
 			{

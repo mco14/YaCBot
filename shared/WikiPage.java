@@ -22,7 +22,6 @@ public class WikiPage {
 	private boolean isCleanedup;
 	// editSummary stays empty if only minor cleanups were made
 	private String editSummary;
-	private String logSummary;
 	private boolean duplicateCategoryCleanup;
 
 	/**
@@ -49,10 +48,6 @@ public class WikiPage {
 
 	public String getEditSummary() {
 		return editSummary;
-	}
-
-	public String getLogSummary() {
-		return logSummary;
 	}
 
 	public String getName() {
@@ -511,7 +506,7 @@ public class WikiPage {
 					.replaceAll("\\n{3,}", "\n\n"));
 			this.parents = cleanParentCategories;
 			if (numberOfRemovedCategories > 0) {
-				this.logSummary = "Removed "
+				String logSummary = "Removed "
 						+ numberOfRemovedCategories
 						+ " categories which are [[COM:OVERCAT|parent]] of already present categories: "
 						+ removedCategoriesWikitext + ". ";
