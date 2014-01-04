@@ -11,7 +11,7 @@ public class YaCBot {
 
 	public static void main(String[] args) {
 
-		System.out.println("v14.01.02");
+		System.out.println("v14.01.03");
 
 		String[] expectedArgs = { "username", "continueKey" };
 		String[] expectedArgsDescription = {
@@ -92,6 +92,23 @@ public class YaCBot {
 				target.cleanupWikitext();
 				target.cleanupOvercat(1, true);
 				target.cleanupUndercat();
+				if (target.getLogSummary() != null)
+					wiki.edit(
+							"User:YaCBot/log",
+							wiki.getPageText("User:YaCBot/log")
+									+ "* [[:"
+									+ target.getName()
+									+ "]]: "
+									+ target.getLogSummary()
+											.replace(
+													" which are [[COM:OVERCAT|parent]] of already present categories",
+													"")
+											.replace(" categories: [[:",
+													" categories:\n*#[[:")
+											.replaceAll("\\]\\], \\[\\[",
+													"]]\n*#[["),
+							"Logging removed categories for file [[:"
+									+ target.getName() + "]]");
 				target.writeText();
 			}
 			{

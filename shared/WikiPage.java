@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.security.auth.login.LoginException;
 
 public class WikiPage {
@@ -21,6 +22,7 @@ public class WikiPage {
 	private boolean isCleanedup;
 	// editSummary stays empty if only minor cleanups were made
 	private String editSummary;
+	private String logSummary;
 	private boolean duplicateCategoryCleanup;
 
 	/**
@@ -47,6 +49,10 @@ public class WikiPage {
 
 	public String getEditSummary() {
 		return editSummary;
+	}
+
+	public String getLogSummary() {
+		return logSummary;
 	}
 
 	public String getName() {
@@ -467,7 +473,7 @@ public class WikiPage {
 			throws IOException {
 		if (!isCleanedup)
 			this.cleanupWikitext();
-		// Category array derived from the pageText
+		// Category array derived from the pageText!
 		Category[] parentCategories = getParentCatsNoDupes();
 		boolean cleanupAnyway = !editSummary.isEmpty()
 				|| duplicateCategoryCleanup;
@@ -487,7 +493,7 @@ public class WikiPage {
 		}
 
 		Object[] cleanedCatsAndText = returnCleanedCatsAndText(cleanupAnyway,
-				parentCategories, allGrandparentCategories);
+				ignoreHidden, depth, parentCategories, allGrandparentCategories);
 		Category[] cleanParentCategories = (Category[]) cleanedCatsAndText[0];
 		String removedCategoriesWikitext = (String) cleanedCatsAndText[1];
 		String cleanCategoryWikitext = (String) cleanedCatsAndText[2];
@@ -504,12 +510,13 @@ public class WikiPage {
 			this.setPlainText((getPlainText() + cleanCategoryWikitext)
 					.replaceAll("\\n{3,}", "\n\n"));
 			this.parents = cleanParentCategories;
-			if (numberOfRemovedCategories > 0)
-				this.editSummary = "Removed "
+			if (numberOfRemovedCategories > 0) {
+				this.logSummary = "Removed "
 						+ numberOfRemovedCategories
 						+ " categories which are [[COM:OVERCAT|parent]] of already present categories: "
-						+ removedCategoriesWikitext + ". " + getEditSummary();
-			else if (duplicateCategoryCleanup)
+						+ removedCategoriesWikitext + ". ";
+				this.editSummary = logSummary + getEditSummary();
+			} else if (duplicateCategoryCleanup)
 				// At least clean up duplicate categories, if no OVERCAT found
 				this.editSummary = getEditSummary()
 						+ "Removed duplicate categories. ";
@@ -580,9 +587,11 @@ public class WikiPage {
 	 *            The previously determined categories which are supposed to be
 	 *            the grandparent categories
 	 * @return The three items bundled into a JAVA-Object array
+	 * @throws IOException
 	 */
-	private static Object[] returnCleanedCatsAndText(boolean cleanupAnyway,
-			Category[] parentCategories, String[] grandparentStrings) {
+	private Object[] returnCleanedCatsAndText(boolean cleanupAnyway,
+			boolean ignoreHidden, int depth, Category[] parentCategories,
+			String[] grandparentStrings) throws IOException {
 		Category[] cleanCategories = new Category[parentCategories.length];
 		String categoryWikitext = "";
 		String removedCatsWikitext = "";
@@ -596,8 +605,13 @@ public class WikiPage {
 			for (int r = 0; r < grandparentStrings.length; r++) {
 				if ((parentCategories[i].getName().equals(grandparentStrings[r]
 						.split(":", 2)[1]))) {
-					removedCatsWikitext = removedCatsWikitext + "[[Category:"
-							+ parentCategories[i].getName() + "]] ";
+					removedCatsWikitext = removedCatsWikitext
+							+ "[[:Category:"
+							+ parentCategories[i].getName()
+							+ "]]"
+							+ childrenOfRemovedCat("Category:"
+									+ parentCategories[i].getName(), depth,
+									ignoreHidden) + ", ";
 					revokedCounter++;
 					cleanCategories[i].setName(revokedFlag);
 					break;
@@ -621,12 +635,40 @@ public class WikiPage {
 			}
 			if (revokedCounter > 0) {
 				removedCatsWikitext = removedCatsWikitext.substring(0,
-						removedCatsWikitext.length() - 1);
+						removedCatsWikitext.length() - 2);
 			}
 			cleanCategories = cleanCategoriesReturn;
 		}
 		return new Object[] { cleanCategories, removedCatsWikitext,
 				categoryWikitext };
+	}
+
+	/**
+	 * Returns all children of the removed parent
+	 * 
+	 * @param removedParent
+	 *            The removed parent
+	 * @param ignoreHidden
+	 *            If hidden categories are ignored
+	 * @return A string containing all children of the removed parent
+	 * @throws IOException
+	 */
+	private String childrenOfRemovedCat(String removedParent, int depth,
+			boolean ignoreHidden) throws IOException {
+		if (depth > 1)
+			return "";
+		String returnString = " which is parent of ";
+		String[] pageCategories = wiki.getCategories(name, false, ignoreHidden);
+		for (String pc : pageCategories) {
+			String[] parentsOfPC = wiki.getCategories(pc, false, ignoreHidden);
+			for (String potc : parentsOfPC) {
+				if (potc.equals(removedParent)) {
+					returnString = returnString + "[[:" + pc + "]] and ";
+					break;
+				}
+			}
+		}
+		return returnString.substring(0, returnString.length() - 5);
 	}
 
 	/**
