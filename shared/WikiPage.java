@@ -639,7 +639,8 @@ public class WikiPage {
 	}
 
 	/**
-	 * Returns all children of the removed parent
+	 * Returns all children of the removed parent (to be used in the "extended"
+	 * summary)
 	 * 
 	 * @param removedParent
 	 *            The removed parent
