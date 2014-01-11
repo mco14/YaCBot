@@ -63,6 +63,7 @@ public class YaCBot {
 		long total = 0;
 		long startTime = System.currentTimeMillis();
 		int deletedCounter = 0;
+		int printStatus = 1;
 
 		while (true) {
 			nextBatchObjects = wiki.listAllFiles(continueKey, 15);
@@ -94,7 +95,8 @@ public class YaCBot {
 				target.cleanupUndercat();
 				target.writeText();
 			}
-			{
+			if (printStatus-- == 0) {
+				printStatus = 30;
 				long runtime = (System.currentTimeMillis() - startTime) / 1000;
 				long days = runtime / (60 * 60 * 24);
 				long hours = (runtime % (60 * 60 * 24)) / (60 * 60);
@@ -116,12 +118,12 @@ public class YaCBot {
 						+ " seconds per file."
 						+ (deletedCounter > 0 ? " [" + deletedCounter
 								+ " deleted files encountered]" : "") + "\n");
+				System.out
+						.println("Requesting next batch of files to work with. (Continue from '"
+								+ continueKey + "')\n");
 			}
 			if (continueKey.length() == 0)
 				break; // No next batch available
-			System.out
-					.println("Requesting next batch of files to work with. (Continue from "
-							+ continueKey + ")\n");
 		}
 		System.out.println("All batches done. Exiting.");
 	}
