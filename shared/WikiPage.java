@@ -130,7 +130,7 @@ public class WikiPage {
 								"$1{{technique|fresco}}$2")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*(?:author|artist)\\s*=\\s*)(?:unknown?|\\{\\{\\s*unknown\\s*\\}\\}|\\?+|unkown|αγνωστος|sconosciuto|ignoto|desconocido|inconnu|not known|desconhecido|unbekannt|неизвестно|Не известен|neznana|nieznany|непознат|okänd|sconossùo|未知|ukjent|onbekend|nich kennt|ലഭ്യമല്ല|непознат|نه‌ناسرا|descoñecido|不明|ignoto|óþekktur|tak diketahui|ismeretlen|nepoznat|לא ידוע|ûnbekend|tuntematon|نامعلوم|teadmata|nekonata|άγνωστος|ukendt|neznámý|desconegut|Неизвестен|ned bekannt|غير معروف)\\s*?\\;?\\.?\\s*?(\\||\\}\\}|\\r|\\n)",
+										+ "(\\|\\s*(?:author|artist)\\s*=\\s*)(?:unknown?|\\{\\{\\s*unknown\\s*\\}\\}|\\?+|unkown|αγνωστος|sconosciuto|ignoto|desconocido|inconnu|not known|desconhecido|unbekannt|неизвестно|Не известен|neznana|nieznany|непознат|okänd|sconossùo|未知|ukjent|onbekend|nich kennt|ലഭ്യമല്ല|непознат|نه‌ناسرا|descoñecido|不明|ignoto|óþekktur|tak diketahui|ismeretlen|nepoznat|לא ידוע|ûnbekend|tuntematon|نامعلوم|teadmata|nekonata|άγνωστος|ukendt|neznámý|desconegut|Неизвестен|ned bekannt|غير معروف|невідомий)\\s*?\\;?\\.?\\s*?(\\||\\}\\}|\\r|\\n)",
 								"$1{{unknown|author}}$2")
 						.replaceAll(
 								caseInsensitive
@@ -313,7 +313,7 @@ public class WikiPage {
 								"$1{{other date|winter|$2}}")
 						.replaceAll(
 								caseInsensitive
-										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})\\s*\\-\\s*(\\d{3,4})?",
+										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})\\s*(?:\\-\\s*(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)?\\s*(\\d{3,4}))?",
 								"$1{{other date|circa|$2|$3}}")
 						.replaceAll(
 								caseInsensitive
