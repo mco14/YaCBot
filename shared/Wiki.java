@@ -6828,7 +6828,8 @@ public class Wiki implements Serializable
     protected void logurl(String url, String method)
     {
         Logger logger = Logger.getLogger("wiki");
-        logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
+        if(logInfo)
+        	logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
     }
 
     // calendar/timestamp methods
