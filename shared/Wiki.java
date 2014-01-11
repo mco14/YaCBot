@@ -424,6 +424,9 @@ public class Wiki implements Serializable
 
     // retry flag
     private boolean retry = true;
+
+    // ignore Information Logs
+	private boolean logInfo = true;
    
     // serial version
     private static final long serialVersionUID = -8745212681497644126L;
@@ -6802,7 +6805,18 @@ public class Wiki implements Serializable
     protected void log(Level level, String method, String text)
     {
         Logger logger = Logger.getLogger("wiki");
-        logger.logp(level, "Wiki", method, "[{0}] {1}", new Object[] { domain, text });
+        if(logInfo||!level.equals(Level.INFO))
+        	logger.logp(level, "Wiki", method, "[{0}] {1}", new Object[] { domain, text });
+    }
+    
+    /**
+     * Sets whether Info log messages should be printed or not. (Default: true)
+     * 
+     * @param logInfo
+     */
+    public void setLogInfo(boolean logInfo)
+    {
+    	this.logInfo = logInfo;
     }
 
     /**
