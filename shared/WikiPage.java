@@ -317,6 +317,10 @@ public class WikiPage {
 								"$1{{other date|circa|$2|$3}}")
 						.replaceAll(
 								caseInsensitive
+										+ "(\\{\\{other date\\|circa\\|\\d+)\\|\\}\\}",
+								"$1}}")
+						.replaceAll(
+								caseInsensitive
 										+ "(\\|\\s*date\\s*=\\s*)(?:[zc]ir[kc]a|ungefähr|about|around|vers|حوالي|cca|etwa|περ\\.?|cerca\\s*de|حدود|noin|cara a|oko|około|около|c[\\:\\. ]?a?[\\:\\. ]?)\\s*(\\d{3,4})",
 								"$1{{other date|circa|$2}}")
 						.replaceAll(
